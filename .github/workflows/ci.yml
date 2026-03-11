@@ -1,3 +1,10 @@
+# ============================================================
+# CI パイプライン
+#
+# 【トリガー設計の理由】
+# - push: main への直接push（緊急修正等）でも必ずCIを通す
+# - pull_request: main へのPRが主な開発フローのため必須
+# ============================================================
 name: CI
 
 on:
@@ -7,54 +14,133 @@ on:
     branches: [main]
 
 jobs:
+  # ============================================================
+  # Backend CI
+  # ============================================================
   backend:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
+      # ------------------------------------------------------------
+      # Node.jsセットアップ + キャッシュ設定
+      #
+      # cache: 'npm' の理由
+      # npm ciは毎回node_modulesを削除してフルインストールするため、
+      # キャッシュなしだと1ジョブあたり1〜2分余分にかかる。
+      # setup-node の cache オプションはpackage-lock.jsonのハッシュを
+      # キーにするため、lock fileが変わらない限りキャッシュが有効になる。
+      # ------------------------------------------------------------
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
 
+      # ------------------------------------------------------------
+      # 依存関係をインストール
+      #
+      # npm ci を使う理由
+      # npm install はpackage.jsonの範囲内で依存を更新する可能性があり、
+      # CI実行ごとに異なるバージョンがインストールされる恐れがある。
+      # ------------------------------------------------------------
       - name: Install dependencies
-        run: npm install
+        run: npm ci
         working-directory: backend
 
+      # ------------------------------------------------------------
+      # Prettierフォーマットチェック
+      #
+      # --check を使う理由：
+      # --write はファイルを書き換えてしまい、CIが成功しても
+      # 「自動修正された」という事実が隠蔽される。
+      # --check はフォーマット違反があれば終了コード1で失敗する
+      # ------------------------------------------------------------
       - name: Format check
-        run: npx prettier --check .
+        run: npx prettier --check "src/**/*.ts" "test/**/*.ts"
         working-directory: backend
 
+      # ------------------------------------------------------------
+      # ESLintチェック
+      #
+      # 直接 eslint を実行する理由：
+      # package.jsonのlintスクリプトには --fix が含まれており、
+      # これをCIで実行するとlintエラーを自動修正して成功扱いになってしまう。
+      # 結果として「lintエラーがあるコードがmainに入る」事態が起きる。
+      # --fix なしで実行し、エラーがあれば必ずCIを失敗させることで
+      # コード品質の劣化を防ぐ。
+      # ------------------------------------------------------------
       - name: Lint
-        run: npm run lint
+        run: npx eslint "{src,apps,libs,test}/**/*.ts"
         working-directory: backend
 
+      # ------------------------------------------------------------
+      # ビルド確認
+      #
+      # TypeScriptのコンパイルエラーをCIで検出する。
+      # lintだけでは型エラーは検出できない
+      # NestJSのnest buildはtscをラップしているため型チェックも行われる。
+      # ------------------------------------------------------------
       - name: Build
         run: npm run build
         working-directory: backend
 
+      # ------------------------------------------------------------
+      # ユニットテスト
+      #
+      # 【現状】環境設定時点ではテストファイルが少ない可能性があるため
+      # --passWithNoTests を付けてテストが0件でも失敗しないようにしている。
+      # テストが増えるにつれてこのオプションを外す。
+      # ------------------------------------------------------------
+      - name: Test
+        run: npm test -- --passWithNoTests
+        working-directory: backend
+
+  # ============================================================
+  # Frontend CI
+  # ============================================================
   frontend:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
+      # backendと同じ理由でキャッシュを設定
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
         working-directory: frontend
 
+      # ------------------------------------------------------------
+      # Prettierフォーマットチェック
+      # ------------------------------------------------------------
       - name: Format check
-        run: npx prettier --check .
+        run: npx prettier --check "app/**/*.{ts,tsx}" "components/**/*.{ts,tsx}"
         working-directory: frontend
 
+      # ------------------------------------------------------------
+      # ESLint（Next.js標準）
+      # ------------------------------------------------------------
       - name: Lint
         run: npm run lint
         working-directory: frontend
 
+      # ------------------------------------------------------------
+      # Next.jsビルド確認
+      #
+      # Next.js 15はビルド時にTypeScript型チェック・ページの
+      # 静的解析も行うため、lintだけでは拾えないエラーを検出できる。
+      # ただし、環境変数（API URLなど）が未設定だとビルドが失敗する場合があるため、
+      # 環境変数が必要になったら GitHub Secrets + env: を追加する。
+      # ------------------------------------------------------------
       - name: Build
         run: npm run build
         working-directory: frontend
