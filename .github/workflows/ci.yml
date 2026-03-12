@@ -51,6 +51,17 @@ jobs:
         working-directory: backend
 
       # ------------------------------------------------------------
+      # Prisma初期化
+      #
+      # Prismaの型は node_modules/.prisma/client/ に自動生成される
+      # ファイルの中にある。このフォルダはgitignoreされているため、
+      # CIの npm install だけでは型情報が読み込まれない。
+      # ------------------------------------------------------------
+      - name: Generate Prisma Client
+        run: npx prisma generate
+        working-directory: ./backend
+
+      # ------------------------------------------------------------
       # Prettierフォーマットチェック
       #
       # --check を使う理由：
