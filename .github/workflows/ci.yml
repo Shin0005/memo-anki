@@ -59,7 +59,9 @@ jobs:
       # ------------------------------------------------------------
       - name: Generate Prisma Client
         run: npx prisma generate
-        working-directory: ./backend
+        working-directory: backend
+        env:
+        DATABASE_URL: 'postgresql://dummy:dummy@localhost:5432/dummy'
 
       # ------------------------------------------------------------
       # Prettierフォーマットチェック
