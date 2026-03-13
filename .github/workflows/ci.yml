@@ -86,7 +86,7 @@ jobs:
       # コード品質の劣化を防ぐ。
       # ------------------------------------------------------------
       - name: Lint
-        run: npx eslint "{src,apps,libs,test}/**/*.ts"
+        run: npm run lint
         working-directory: backend
 
       # ------------------------------------------------------------
