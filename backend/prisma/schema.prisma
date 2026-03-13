@@ -3,6 +3,7 @@ generator client {
   binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
+// 現在のバージョンではurlの機能はサポートされているため、エラーを無視。
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
