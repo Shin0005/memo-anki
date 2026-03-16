@@ -6,10 +6,14 @@ import { LoginRequest } from './dto/login.request';
 import * as bcrypt from 'bcrypt';
 import { CreateUserDto } from '../user/dto/create-user.dto';
 import { RegisterRequest } from './dto/register.request';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class AuthService {
-  constructor(private userService: UserService) {}
+  constructor(
+    private userService: UserService,
+    private jwtService: JwtService,
+  ) {}
 
   /**
    * 既存のusernameがないか検索する
@@ -35,8 +39,8 @@ export class AuthService {
   /**
    * 登録処理
    * 重複確認後に登録処理を行う。
-   * @param dto
-   * @returns
+   * @param request
+   * @returns AuthResponse
    */
   async register(request: RegisterRequest) {
     // 重複チェック
@@ -55,9 +59,8 @@ export class AuthService {
 
     // ユーザ登録
     const user: User = await this.userService.create(dto);
-    // Token発行
-    const accessToken = '';
-
+    // Token発行（ペイロードに内部識別子id）
+    const accessToken = this.jwtService.sign({ sub: user.id });
     // responseに変換
     return new AuthResponse(user.username, accessToken, user.email);
   }
@@ -66,7 +69,7 @@ export class AuthService {
    * ログイン処理
    * 現時点でusernameとpasswordで認証
    * @param request
-   * @returns
+   * @returns AuthResponse
    */
   async login(request: LoginRequest) {
     // requestのusernameの存在確認
@@ -78,9 +81,9 @@ export class AuthService {
     //認証
     const isMatch = await bcrypt.compare(request.password, user.passwordHash);
     if (!isMatch) throw new Error(); // 認証失敗例外を別途作成
-
     // Token発行
-    const accessToken = '';
+    const accessToken = this.jwtService.sign({ sub: user.id });
+    //responseに変換
     return new AuthResponse(user.username, accessToken, user.email);
   }
 }
