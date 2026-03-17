@@ -2,16 +2,23 @@
 # CI パイプライン
 #
 # 【トリガー設計の理由】
-# - push: main への直接push（緊急修正等）でも必ずCIを通す
-# - pull_request: main へのPRが主な開発フローのため必須
+# - push: docs/ 以外の全ブランチでCIを実行し、早期にエラーを検知する
+# - pull_request: main へのPR時にCIを必須化するため
 # ============================================================
 name: CI
 
+concurrency: # 古いコミットのCIを自動でキャンセル（並列実行制御）
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
-    branches: [main]
+    branches:
+      - '**' # すべてのブランチを対象
+      - '!docs/**' # docs/ で始まるブランチは除外
   pull_request:
-    branches: [main]
+    branches:
+      - main
 
 jobs:
   # ============================================================
