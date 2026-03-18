@@ -2,7 +2,13 @@ import { Injectable } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { Prisma, User } from '@prisma/client';
 import { PrismaService } from '.././prisma/prisma.service';
-import { CreateUserDto } from './dto/create-user.dto';
+
+// createの引数契約 外に出すことで代入しやすくる
+export type CreateUserInput = {
+  username: string;
+  password: string;
+  email?: string | null;
+};
 
 @Injectable()
 export class UserService {
@@ -11,17 +17,17 @@ export class UserService {
   /**
    * ユーザ登録
    * パスワードのハッシュ化と、Prisma用データへの詰め替えを行う
+   * @param CreateUserInput
    * @returns Promise<User>
    */
-  // パスワードはハッシュ化する。サービスの責務。
-  async create(dto: CreateUserDto): Promise<User> {
-    const passwordHash = await bcrypt.hash(dto.password, 10);
+  async create(input: CreateUserInput): Promise<User> {
+    const passwordHash = await bcrypt.hash(input.password, 10);
 
     // Prisma標準のdtoを利用
     const createInput: Prisma.UserCreateInput = {
-      username: dto.username,
+      username: input.username,
       passwordHash: passwordHash,
-      email: dto.email,
+      email: input.email,
     };
     return await this.prismaService.user.create({ data: createInput });
   }

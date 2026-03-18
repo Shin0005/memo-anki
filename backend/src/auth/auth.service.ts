@@ -1,10 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { UserService } from '../user/user.service';
+import { UserService, CreateUserInput } from '../user/user.service';
 import { User } from '@prisma/client';
 import { AuthResponse } from './dto/auth.response';
 import { LoginRequest } from './dto/login.request';
 import * as bcrypt from 'bcrypt';
-import { CreateUserDto } from '../user/dto/create-user.dto';
 import { RegisterRequest } from './dto/register.request';
 import { JwtService } from '@nestjs/jwt';
 
@@ -50,18 +49,17 @@ export class AuthService {
       if (!(await this.validEmail(request.email))) throw new Error(); // 重複例外を別途作成
     }
 
-    // Requestから内部Dtoへ変換
-    const dto: CreateUserDto = {
+    // Userの契約に合わせたオブジェクトを作成
+    const userInput: CreateUserInput = {
       username: request.username,
       password: request.password,
       email: request.email,
     };
 
     // ユーザ登録
-    const user: User = await this.userService.create(dto);
+    const user: User = await this.userService.create(userInput);
     // Token発行（ペイロードに内部識別子id）
     const accessToken = this.jwtService.sign({ sub: user.id });
-    // responseに変換
     return new AuthResponse(user.username, accessToken, user.email);
   }
 
@@ -83,7 +81,6 @@ export class AuthService {
     if (!isMatch) throw new Error(); // 認証失敗例外を別途作成
     // Token発行
     const accessToken = this.jwtService.sign({ sub: user.id });
-    //responseに変換
     return new AuthResponse(user.username, accessToken, user.email);
   }
 }
