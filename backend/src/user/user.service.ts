@@ -1,31 +1,40 @@
 import { Injectable } from '@nestjs/common';
-import { UserRepository } from './user.repository';
 import * as bcrypt from 'bcrypt';
 import { Prisma, User } from '@prisma/client';
+import { PrismaService } from '.././prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 
 @Injectable()
 export class UserService {
-  constructor(private userRepository: UserRepository) {}
+  constructor(private readonly prismaService: PrismaService) {}
 
+  /**
+   * ユーザ登録
+   * パスワードのハッシュ化と、Prisma用データへの詰め替えを行う
+   * @returns Promise<User>
+   */
   // パスワードはハッシュ化する。サービスの責務。
   async create(dto: CreateUserDto): Promise<User> {
     const passwordHash = await bcrypt.hash(dto.password, 10);
 
     // Prisma標準のdtoを利用
-    const createdData: Prisma.UserCreateInput = {
+    const createInput: Prisma.UserCreateInput = {
       username: dto.username,
       passwordHash: passwordHash,
       email: dto.email,
     };
-    return this.userRepository.create(createdData);
+    return await this.prismaService.user.create({ data: createInput });
   }
 
   async findByUsername(username: string): Promise<User | null> {
-    return this.userRepository.findByUsername(username);
+    return await this.prismaService.user.findUnique({
+      where: { username },
+    });
   }
 
   async findByEmail(email: string): Promise<User | null> {
-    return this.userRepository.findByEmail(email);
+    return await this.prismaService.user.findUnique({
+      where: { email },
+    });
   }
 }
