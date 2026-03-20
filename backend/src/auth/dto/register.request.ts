@@ -1,23 +1,18 @@
-import {
-  IsString,
-  IsOptional,
-  IsEmail,
-  MinLength,
-  MaxLength,
-} from 'class-validator';
+import { IsOptional, IsEmail, MinLength, MaxLength } from 'class-validator';
+import { NotBlank } from '../../common/decorators/not-blank.decorator';
 
 export class RegisterRequest {
-  @IsString()
-  @MaxLength(30)
+  @NotBlank('ユーザ名は必須です')
+  @MaxLength(30, { message: '30文字以内で入力してください' })
   username: string;
 
-  @IsString()
-  @MinLength(8)
-  @MaxLength(64)
+  @NotBlank('パスワードは必須です')
+  @MinLength(8, { message: '8文字以上で入力してください' })
+  @MaxLength(64, { message: '64文字未満で入力してください' })
   password: string;
 
   @IsOptional()
-  @IsEmail()
-  @MaxLength(255)
+  @IsEmail({}, { message: '有効なメールアドレスを入力してください' })
+  @MaxLength(255, { message: '255文字以内で入力してください' })
   email?: string;
 }
