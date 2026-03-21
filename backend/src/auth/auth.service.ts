@@ -6,12 +6,17 @@ import { LoginRequest } from './dto/login.request';
 import * as bcrypt from 'bcrypt';
 import { RegisterRequest } from './dto/register.request';
 import { JwtService } from '@nestjs/jwt';
+import {
+  LoginFailedException,
+  UserEmailAlreadyExistException,
+  UserIdAlreadyExistException,
+} from '../common/exceptions/domain.exceptions';
 
 @Injectable()
 export class AuthService {
   constructor(
-    private userService: UserService,
-    private jwtService: JwtService,
+    private readonly userService: UserService,
+    private readonly jwtService: JwtService,
   ) {}
 
   /**
@@ -43,10 +48,12 @@ export class AuthService {
    */
   async register(request: RegisterRequest) {
     // 重複チェック
-    if (!(await this.validUsername(request.username))) throw new Error(); // 重複例外を別途作成
+    if (!(await this.validUsername(request.username)))
+      throw new UserIdAlreadyExistException(request.username);
 
     if (request.email !== undefined && request.email !== null) {
-      if (!(await this.validEmail(request.email))) throw new Error(); // 重複例外を別途作成
+      if (!(await this.validEmail(request.email)))
+        throw new UserEmailAlreadyExistException(request.email);
     }
 
     // Userの契約に合わせたオブジェクトを作成
@@ -74,11 +81,10 @@ export class AuthService {
     const user: User | null = await this.userService.findByUsername(
       request.username,
     );
-    if (!user) throw new Error(); // NotFound例外を別途作成
-
+    if (!user) throw new LoginFailedException('Username');
     //認証
     const isMatch = await bcrypt.compare(request.password, user.passwordHash);
-    if (!isMatch) throw new Error(); // 認証失敗例外を別途作成
+    if (!isMatch) throw new LoginFailedException('Password');
     // Token発行
     const accessToken = this.jwtService.sign({ sub: user.id });
     return new AuthResponse(user.username, accessToken, user.email);
