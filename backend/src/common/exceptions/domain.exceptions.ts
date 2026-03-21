@@ -8,8 +8,9 @@ export abstract class DomainException extends HttpException {
     super(message, status);
   }
 }
-// User系
-
+/*
+  User系
+*/
 export class UserNotFoundException extends DomainException {
   constructor(userId: string) {
     super(`UserId: ${userId} is not found.`, HttpStatus.NOT_FOUND);
@@ -27,13 +28,9 @@ export class UserEmailAlreadyExistException extends DomainException {
     super(`This email: ${email} is already exist.`, HttpStatus.CONFLICT);
   }
 }
-
-// Auth系
-/**
- * @param onError string
- *
- * 例）username, password, email
- */
+/*
+  Auth系
+*/
 export class LoginFailedException extends DomainException {
   constructor(onError: string) {
     super(`Login Failed due to ${onError} error.`, HttpStatus.UNAUTHORIZED);

@@ -65,6 +65,23 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         timestamp: new Date().toISOString(),
         path: request.url,
       });
+
+      /*
+        予期しないエラー
+      */
+    } else {
+      const stack =
+        exception instanceof Error
+          ? exception.stack
+          : 'No stack trace available.';
+      this.logger.error('Unexpected Error Occurred.', stack);
+
+      return response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: 'Unexpected Error Occurred.', // stacktraceは漏らさない
+        timestamp: new Date().toISOString(),
+        path: request.url,
+      });
     }
   }
 }
