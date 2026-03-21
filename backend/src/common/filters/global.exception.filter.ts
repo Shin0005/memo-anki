@@ -7,6 +7,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
+import { LoginFailedException } from '../exceptions/domain.exceptions';
 import { ValidationFailedException } from '../exceptions/application.exceptions';
 
 @Catch()
@@ -39,9 +40,24 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         path: request.url,
       });
 
-    // Http系の汎用例外（DomainExも含む）
-    if (exception instanceof HttpException) {
-      this.logger.warn(exception.message);
+      /*
+        ログイン失敗例外
+      */
+    } else if (exception instanceof LoginFailedException) {
+      this.logger.warn(`${exception.message} - Path: ${request.url}`);
+
+      return response.status(exception.getStatus()).json({
+        statusCode: exception.getStatus(),
+        message: 'Login Failed.', // フィールド情報は漏らさない
+        timestamp: new Date().toISOString(),
+        path: request.url,
+      });
+
+      /*
+        Http系の汎用例外（DomainExも含む）
+      */
+    } else if (exception instanceof HttpException) {
+      this.logger.warn(`${exception.message} - Path: ${request.url}`);
 
       return response.status(exception.getStatus()).json({
         statusCode: exception.getStatus(),
