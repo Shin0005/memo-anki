@@ -1,16 +1,13 @@
-import {
-  BadRequestException,
-  ValidationError,
-  ValidationPipe,
-} from '@nestjs/common';
+import { ValidationError, ValidationPipe } from '@nestjs/common';
+import { ValidationFailedException } from '../exceptions/application.exceptions';
 
 export const customValidationPipe = new ValidationPipe({
   transform: true,
   whitelist: true,
   forbidNonWhitelisted: true,
   stopAtFirstError: true,
-  // validationエラーのレスポンス形式はfilterに委譲する
+  // BadRequestを投げずに独自例外を投げる
   exceptionFactory: (errors: ValidationError[]) => {
-    return new BadRequestException(errors);
+    return new ValidationFailedException(errors);
   },
 });
