@@ -19,3 +19,9 @@ export class ValidationFailedException extends ApplicationException {
     super('Validation Failed.', HttpStatus.BAD_REQUEST);
   }
 }
+
+export class IsNotNumberException extends ApplicationException {
+  constructor(deckId: string) {
+    super(` DeckId: ${deckId} is not a Number.`, HttpStatus.BAD_REQUEST);
+  }
+}

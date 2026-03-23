@@ -17,9 +17,9 @@ export class UserNotFoundException extends DomainException {
   }
 }
 
-export class UserIdAlreadyExistException extends DomainException {
-  constructor(userId: string) {
-    super(`This UserId: ${userId} is already exist.`, HttpStatus.CONFLICT);
+export class UsernameAlreadyExistException extends DomainException {
+  constructor(username: string) {
+    super(`This Username: ${username} is already exist.`, HttpStatus.CONFLICT);
   }
 }
 
@@ -34,5 +34,20 @@ export class UserEmailAlreadyExistException extends DomainException {
 export class LoginFailedException extends DomainException {
   constructor(onError: string) {
     super(`Login Failed due to ${onError} error.`, HttpStatus.UNAUTHORIZED);
+  }
+}
+
+/*
+  Deck系
+*/
+export class DeckNotFoundException extends DomainException {
+  constructor(deckId: string) {
+    super(`DeckId: ${deckId} is not found.`, HttpStatus.NOT_FOUND);
+  }
+}
+
+export class DecknameAlreadyExistException extends DomainException {
+  constructor(deckname: string) {
+    super(`This Deckname: ${deckname} is already exist.`, HttpStatus.CONFLICT);
   }
 }
