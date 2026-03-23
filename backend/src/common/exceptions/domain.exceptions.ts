@@ -17,9 +17,9 @@ export class UserNotFoundException extends DomainException {
   }
 }
 
-export class UserIdAlreadyExistException extends DomainException {
-  constructor(userId: string) {
-    super(`This UserId: ${userId} is already exist.`, HttpStatus.CONFLICT);
+export class UsernameAlreadyExistException extends DomainException {
+  constructor(username: string) {
+    super(`This Username: ${username} is already exist.`, HttpStatus.CONFLICT);
   }
 }
 

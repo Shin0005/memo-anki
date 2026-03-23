@@ -9,7 +9,7 @@ import { JwtService } from '@nestjs/jwt';
 import {
   LoginFailedException,
   UserEmailAlreadyExistException,
-  UserIdAlreadyExistException,
+  UsernameAlreadyExistException,
 } from '../common/exceptions/domain.exceptions';
 
 @Injectable()
@@ -49,7 +49,7 @@ export class AuthService {
   async register(request: RegisterRequest) {
     // 重複チェック
     if (!(await this.validUsername(request.username)))
-      throw new UserIdAlreadyExistException(request.username);
+      throw new UsernameAlreadyExistException(request.username);
 
     if (request.email !== undefined && request.email !== null) {
       if (!(await this.validEmail(request.email)))
