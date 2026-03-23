@@ -36,3 +36,18 @@ export class LoginFailedException extends DomainException {
     super(`Login Failed due to ${onError} error.`, HttpStatus.UNAUTHORIZED);
   }
 }
+
+/*
+  Deck系
+*/
+export class DeckNotFoundException extends DomainException {
+  constructor(deckId: string) {
+    super(`DeckId: ${deckId} is not found.`, HttpStatus.NOT_FOUND);
+  }
+}
+
+export class DecknameAlreadyExistException extends DomainException {
+  constructor(deckname: string) {
+    super(`This Deckname: ${deckname} is already exist.`, HttpStatus.CONFLICT);
+  }
+}
