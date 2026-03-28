@@ -13,6 +13,7 @@ import { JwtAuthGuard } from '../auth/jwt.guard';
 import { GetUserId } from '../common/decorators/get-userid.decorator';
 import { UpdateDeckRequest } from './dto/update-deck.request';
 import { DeckResponse } from './dto/deck.response';
+import { RequiredDeckIdRequest } from './dto/required-deckid.request';
 
 @Controller('deck')
 export class DeckController {
@@ -55,11 +56,11 @@ export class DeckController {
   @Delete()
   async deleteDeck(
     @GetUserId() userId: string,
-    @Body('deckId') deckId: string,
+    @Body() request: RequiredDeckIdRequest,
   ) {
     const response: DeckResponse = await this.deckService.deleteDeck(
       userId,
-      deckId,
+      request,
     );
     return response;
   }

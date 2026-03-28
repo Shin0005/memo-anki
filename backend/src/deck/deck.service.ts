@@ -4,12 +4,14 @@ import { CreateDeckRequest } from './dto/create-deck.request';
 import { Deck, Prisma } from '@prisma/client';
 import { UpdateDeckRequest } from './dto/update-deck.request';
 import { DeckResponse } from './dto/deck.response';
-import { IsNotNumberException } from '../common/exceptions/application.exceptions';
 import {
   DecknameAlreadyExistException,
   DeckNotFoundException,
 } from '../common/exceptions/domain.exceptions';
+import { RequiredDeckIdRequest } from './dto/required-deckid.request';
 
+// 将来的にserviceの引数をtype or interfaceに変更する可能性がある
+// このmodule以外、特にnotion連携機能で使う可能性がある。
 @Injectable()
 export class DeckService {
   constructor(private readonly prismaService: PrismaService) {}
@@ -68,10 +70,18 @@ export class DeckService {
     return results.map((deck) => new DeckResponse(deck));
   }
 
+  // deckcontrollerで呼び出す設計にしていない
+  /**
+   * deckIdでDeckを検索する。deckIdはバリデーションされている前提
+   */
+  async getDeckById(userId: string, deckId: bigint) {
+    const result = await this.prismaService.deck.findUniqueOrThrow({
+      where: { userId: userId, id: deckId },
+    });
+    return new DeckResponse(result);
+  }
+
   async updateDeck(userId: string, request: UpdateDeckRequest) {
-    // DeckIdに数字（0-9）が1文字以上並んでいるかチェック
-    if (!/^\d+$/.test(request.deckId))
-      throw new IsNotNumberException(request.deckId);
     if (!(await this.validDeckId(request.deckId)))
       throw new DeckNotFoundException(request.deckId);
 
@@ -87,14 +97,12 @@ export class DeckService {
     return new DeckResponse(result);
   }
 
-  async deleteDeck(userId: string, deckId: string) {
-    // DeckIdに数字（0-9）が1文字以上並んでいるかチェック
-    if (!/^\d+$/.test(deckId)) throw new IsNotNumberException(deckId);
-    if (!(await this.validDeckId(deckId)))
-      throw new DeckNotFoundException(deckId);
+  async deleteDeck(userId: string, request: RequiredDeckIdRequest) {
+    if (!(await this.validDeckId(request.deckId)))
+      throw new DeckNotFoundException(request.deckId);
 
     const result: Deck = await this.prismaService.deck.delete({
-      where: { userId: userId, id: BigInt(deckId) },
+      where: { userId: userId, id: BigInt(request.deckId) },
     });
     return new DeckResponse(result);
   }
