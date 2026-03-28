@@ -10,6 +10,8 @@ import {
 } from '../common/exceptions/domain.exceptions';
 import { RequiredDeckIdRequest } from './dto/required-deckid.request';
 
+// 将来的にserviceの引数をtype or interfaceに変更する可能性がある
+// このmodule以外、特にnotion連携機能で使う可能性がある。
 @Injectable()
 export class DeckService {
   constructor(private readonly prismaService: PrismaService) {}
@@ -66,6 +68,17 @@ export class DeckService {
       where: { userId: userId },
     });
     return results.map((deck) => new DeckResponse(deck));
+  }
+
+  // deckcontrollerで呼び出す設計にしていない
+  /**
+   * deckIdでDeckを検索する。deckIdはバリデーションされている前提
+   */
+  async getDeckById(userId: string, deckId: bigint) {
+    const result = await this.prismaService.deck.findUniqueOrThrow({
+      where: { userId: userId, id: deckId },
+    });
+    return new DeckResponse(result);
   }
 
   async updateDeck(userId: string, request: UpdateDeckRequest) {
