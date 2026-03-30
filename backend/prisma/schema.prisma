@@ -18,6 +18,7 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   decks        Deck[]
+  cards        Card[]
 
   @@map("users") // テーブル名をスネークケースにする
 }
@@ -31,8 +32,47 @@ model Deck {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cards Card[]
 
   @@index([userId])
   @@map("decks")
+}
+
+// Cardテーブル
+/**
+ * type  =  {0:note, 1:quiz}
+ * queue =  {0:NEW, 1: SHORT, 2:LONG}
+ */
+
+model Card {
+  id           BigInt   @id @default(autoincrement()) // 漏洩しても問題ない
+  deckId       BigInt
+  userId       String
+  name         String
+  /// Cardの種類：noteかquiz
+  type         Int
+  content      String? // noteの時の内容 quizの時null
+  question     String? // quizの時の質問 noteの時null
+  answer       String? // quizの時の回答 noteの時null
+  /// queueの種類：NEW，SHORT，LONG
+  queue        Int      @default(0)
+  /// 復習回数
+  repetition   Int      @default(0)
+  /// 復習間隔
+  interval     Int      @default(1)
+  /// 難易度係数
+  easeFactor   Float    @default(2.5)
+  /// 次回復習日時
+  nextReviewAt DateTime @default(now())
+  version      Int      @default(0) // 複数ワーカー対策
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deck Deck @relation(fields: [deckId], references: [id], onDelete: Cascade)
+
+  // 複合インデックス userIdとdeckIdが一致したカードを素早く取得できる。  
+  @@index([userId, deckId])
+  @@map("card")
 }
