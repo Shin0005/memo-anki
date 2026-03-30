@@ -51,3 +51,18 @@ export class DecknameAlreadyExistException extends DomainException {
     super(`This Deckname: ${deckname} is already exist.`, HttpStatus.CONFLICT);
   }
 }
+
+/*
+  Card系
+*/
+export class CardNotFoundException extends DomainException {
+  constructor(cardId: string) {
+    super(`CardId: ${cardId} is not found.`, HttpStatus.NOT_FOUND);
+  }
+}
+
+export class CardnameAlreadyExistException extends DomainException {
+  constructor(cardname: string) {
+    super(`This Cardname: ${cardname} is already exist.`, HttpStatus.CONFLICT);
+  }
+}
