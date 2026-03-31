@@ -9,6 +9,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+/**
+ * 全体の関係として、User -> Deck -> Cardという関係
+ * UserはDeckに所属しないCardを持たない。
+ */
+
 // Userテーブル
 model User {
   id           String   @id @default(uuid())
@@ -18,7 +23,6 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   decks        Deck[]
-  cards        Card[]
 
   @@map("users") // テーブル名をスネークケースにする
 }
@@ -48,7 +52,6 @@ model Deck {
 model Card {
   id           BigInt   @id @default(autoincrement()) // 漏洩しても問題ない
   deckId       BigInt
-  userId       String
   name         String
   /// Cardの種類：noteかquiz
   type         Int
@@ -69,10 +72,9 @@ model Card {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   deck Deck @relation(fields: [deckId], references: [id], onDelete: Cascade)
 
-  // 複合インデックス userIdとdeckIdが一致したカードを素早く取得できる。  
-  @@index([userId, deckId])
+  // デッキごとのカード取得を高速化
+  @@index([deckId])
   @@map("card")
 }

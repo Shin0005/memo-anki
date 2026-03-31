@@ -1,10 +1,8 @@
 import { Card } from '@prisma/client';
 
 export class CardResponse {
-  cardId: string;
-
+  id: string;
   deckId: string;
-  userId: string;
   name: string;
   type: number;
   content: string | null;
@@ -14,9 +12,8 @@ export class CardResponse {
 
   constructor(card: Card) {
     // FK PKはNOT NULL制約のため異常発生してもここに来る前にエラー
-    this.cardId = card.id?.toString();
+    this.id = card.id?.toString();
     this.deckId = card.deckId?.toString();
-    this.userId = card.userId;
     this.name = card.name;
     this.type = card.type;
     this.content = card.content; // 明確にnullにしたい

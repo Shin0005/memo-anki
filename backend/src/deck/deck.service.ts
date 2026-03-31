@@ -78,7 +78,7 @@ export class DeckService {
     const result = await this.prismaService.deck.findUniqueOrThrow({
       where: { userId: userId, id: deckId },
     });
-    return new DeckResponse(result);
+    return result;
   }
 
   async updateDeck(userId: string, request: UpdateDeckRequest) {
