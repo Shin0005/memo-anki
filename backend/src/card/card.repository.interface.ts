@@ -8,7 +8,7 @@ export interface ICardRepository {
     deckId: bigint,
     data: Prisma.CardUncheckedUpdateInput,
   ): Promise<Card>;
-  deleteCard(userId: string, deckId: bigint): Promise<Card>;
+  deleteCard(userId: string, deckId: bigint): Promise<void>;
   updateCard(
     userId: string,
     cardId: bigint,

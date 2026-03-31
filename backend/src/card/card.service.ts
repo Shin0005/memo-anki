@@ -128,6 +128,6 @@ export class CardService {
     if (!(await this.getCardById(userId, cardId)))
       throw new CardNotFoundException(String(cardId));
 
-    return await this.iCardRepository.deleteCard(userId, BigInt(cardId));
+    await this.iCardRepository.deleteCard(userId, BigInt(cardId));
   }
 }

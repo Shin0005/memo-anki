@@ -3,6 +3,8 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Post,
   Put,
   UseGuards,
@@ -68,14 +70,11 @@ export class CardController {
 
   @UseGuards(JwtAuthGuard)
   @Delete()
+  @HttpCode(HttpStatus.NO_CONTENT)
   async deleteCard(
     @GetUserId() userId: string,
     @Body() request: RequiredCardIdRequest,
   ) {
-    const response: Card = await this.cardService.deleteCard(
-      userId,
-      BigInt(request.cardId),
-    );
-    return new CardResponse(response);
+    await this.cardService.deleteCard(userId, BigInt(request.cardId));
   }
 }

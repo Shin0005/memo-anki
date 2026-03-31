@@ -65,8 +65,8 @@ export class CardRepository implements ICardRepository {
     return updatedCard!;
   }
 
-  async deleteCard(userId: string, deckId: bigint): Promise<Card> {
-    return this.prismaService.card.delete({
+  async deleteCard(userId: string, deckId: bigint): Promise<void> {
+    await this.prismaService.card.delete({
       where: { deck: { userId }, id: deckId },
     });
   }
