@@ -3,6 +3,8 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Post,
   Put,
   UseGuards,
@@ -25,18 +27,15 @@ export class DeckController {
     @GetUserId() userId: string,
     @Body() request: CreateDeckRequest,
   ) {
-    const response: DeckResponse = await this.deckService.createDeck(
-      userId,
-      request,
-    );
-    return response;
+    const response = await this.deckService.createDeck(userId, request);
+    return new DeckResponse(response);
   }
 
   @UseGuards(JwtAuthGuard)
   @Get()
   async getDecks(@GetUserId() userId: string) {
-    const response: DeckResponse[] = await this.deckService.getDecks(userId);
-    return response;
+    const response = await this.deckService.getDecks(userId);
+    return response.map((deck) => new DeckResponse(deck));
   }
 
   @UseGuards(JwtAuthGuard)
@@ -45,23 +44,17 @@ export class DeckController {
     @GetUserId() userId: string,
     @Body() request: UpdateDeckRequest,
   ) {
-    const response: DeckResponse = await this.deckService.updateDeck(
-      userId,
-      request,
-    );
-    return response;
+    const response = await this.deckService.updateDeck(userId, request);
+    return new DeckResponse(response);
   }
 
   @UseGuards(JwtAuthGuard)
   @Delete()
+  @HttpCode(HttpStatus.NO_CONTENT)
   async deleteDeck(
     @GetUserId() userId: string,
     @Body() request: RequiredDeckIdRequest,
   ) {
-    const response: DeckResponse = await this.deckService.deleteDeck(
-      userId,
-      request,
-    );
-    return response;
+    await this.deckService.deleteDeck(userId, request);
   }
 }

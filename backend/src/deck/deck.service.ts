@@ -3,7 +3,6 @@ import { PrismaService } from '.././prisma/prisma.service';
 import { CreateDeckRequest } from './dto/create-deck.request';
 import { Deck, Prisma } from '@prisma/client';
 import { UpdateDeckRequest } from './dto/update-deck.request';
-import { DeckResponse } from './dto/deck.response';
 import {
   DecknameAlreadyExistException,
   DeckNotFoundException,
@@ -57,17 +56,15 @@ export class DeckService {
       description: request.description, // undefinedのままでも渡す
     };
 
-    const result: Deck = await this.prismaService.deck.create({
+    return await this.prismaService.deck.create({
       data: deckInput,
     });
-    return new DeckResponse(result);
   }
 
   async getDecks(userId: string) {
-    const results = await this.prismaService.deck.findMany({
+    return await this.prismaService.deck.findMany({
       where: { userId: userId },
     });
-    return results.map((deck) => new DeckResponse(deck));
   }
 
   // deckcontrollerで呼び出す設計にしていない
@@ -75,10 +72,9 @@ export class DeckService {
    * deckIdでDeckを検索する。deckIdはバリデーションされている前提
    */
   async getDeckById(userId: string, deckId: bigint) {
-    const result = await this.prismaService.deck.findUniqueOrThrow({
+    return await this.prismaService.deck.findUniqueOrThrow({
       where: { userId: userId, id: deckId },
     });
-    return result;
   }
 
   async updateDeck(userId: string, request: UpdateDeckRequest) {
@@ -90,20 +86,17 @@ export class DeckService {
       description: request.description, // undefinedのままでも渡す
     };
 
-    const result: Deck = await this.prismaService.deck.update({
+    return await this.prismaService.deck.update({
       where: { userId: userId, id: BigInt(request.deckId) },
       data: deckInput,
     });
-    return new DeckResponse(result);
   }
-
   async deleteDeck(userId: string, request: RequiredDeckIdRequest) {
     if (!(await this.validDeckId(request.deckId)))
       throw new DeckNotFoundException(request.deckId);
 
-    const result: Deck = await this.prismaService.deck.delete({
+    await this.prismaService.deck.delete({
       where: { userId: userId, id: BigInt(request.deckId) },
     });
-    return new DeckResponse(result);
   }
 }
