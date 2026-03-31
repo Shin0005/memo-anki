@@ -17,11 +17,11 @@ export class DeckService {
 
   /**
    * 現在のユーザで既存のdeckのnameがないか検索する
-   * 該当するnameがある場合にtrueを返す
+   * 該当するnameがある場合にDeckを返す
    * @param name
-   * @returns boolean
+   * @returns Deck
    */
-  private async validDeckName(
+  private async findByDeckName(
     userId: string,
     deckName: string,
   ): Promise<Deck | null> {
@@ -35,19 +35,22 @@ export class DeckService {
 
   /**
    * 既存のdeckのidがないか検索する
-   * 該当するidがある場合にfalseを返す
+   * 該当するidがある場合にDeckを返す
    * @param deckId
-   * @returns boolean
+   * @returns Deck
    */
-  private async validDeckId(deckId: string): Promise<Deck | null> {
-    return await this.prismaService.deck.findUnique({
-      where: { id: BigInt(deckId) },
+  private async findByDeckId(
+    userId: string,
+    deckId: string,
+  ): Promise<Deck | null> {
+    return await this.prismaService.deck.findFirst({
+      where: { userId, id: BigInt(deckId) },
     });
   }
 
   async createDeck(userId: string, request: CreateDeckRequest) {
     // useridが同じかつdeckの名前がすでにあるなら例外スロー
-    if (await this.validDeckName(userId, request.name))
+    if (await this.findByDeckName(userId, request.name))
       throw new DecknameAlreadyExistException(request.name);
 
     const deckInput: Prisma.DeckUncheckedCreateInput = {
@@ -78,24 +81,31 @@ export class DeckService {
   }
 
   async updateDeck(userId: string, request: UpdateDeckRequest) {
-    if (!(await this.validDeckId(request.deckId)))
-      throw new DeckNotFoundException(request.deckId);
+    const deck = await this.findByDeckId(userId, request.deckId);
+    if (!deck) throw new DeckNotFoundException(request.deckId);
 
     const deckInput: Prisma.DeckUncheckedUpdateInput = {
       name: request.name,
       description: request.description, // undefinedのままでも渡す
     };
 
-    return await this.prismaService.deck.update({
-      where: { userId: userId, id: BigInt(request.deckId) },
+    const result = await this.prismaService.deck.updateMany({
+      where: { userId: deck.userId, id: BigInt(request.deckId) },
       data: deckInput,
     });
+
+    if (result.count === 0) {
+      throw new DeckNotFoundException(String(deck.id));
+    }
+    // 更新後のデータを取得して返す（count=0でnullになることはない）
+    const updatedDeck = await this.findByDeckId(userId, String(deck.id));
+    return updatedDeck!;
   }
   async deleteDeck(userId: string, request: RequiredDeckIdRequest) {
-    if (!(await this.validDeckId(request.deckId)))
+    if (!(await this.findByDeckId(userId, request.deckId)))
       throw new DeckNotFoundException(request.deckId);
 
-    await this.prismaService.deck.delete({
+    await this.prismaService.deck.deleteMany({
       where: { userId: userId, id: BigInt(request.deckId) },
     });
   }
