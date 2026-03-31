@@ -9,14 +9,16 @@ import { CardNotFoundException } from '../common/exceptions/domain.exceptions';
 export class CardRepository implements ICardRepository {
   constructor(private readonly prismaService: PrismaService) {}
 
-  async findByCardId(userId: string, deckId: bigint): Promise<Card | null> {
-    return this.prismaService.card.findFirst({ where: { userId, id: deckId } });
+  async findByCardId(userId: string, cardId: bigint): Promise<Card | null> {
+    return this.prismaService.card.findFirst({
+      where: { deck: { userId }, id: cardId },
+    });
   }
 
   async findByCardname(userId: string, cardname: string): Promise<Card | null> {
     return await this.prismaService.card.findFirst({
       where: {
-        userId: userId,
+        deck: { userId },
         name: cardname,
       },
     });
@@ -24,23 +26,22 @@ export class CardRepository implements ICardRepository {
 
   async findCards(userId: string): Promise<Card[]> {
     return await this.prismaService.card.findMany({
-      where: { userId },
+      where: { deck: { userId } },
     });
   }
 
   async createCard(
-    userId: string,
+    deckId: bigint,
     data: Prisma.CardUncheckedCreateInput,
   ): Promise<Card> {
     return this.prismaService.card.create({
       data: {
-        deckId: data.deckId,
+        deckId,
         name: data.name,
         type: data.type,
         content: data.content,
         question: data.question,
         answer: data.answer,
-        userId: userId, // 他人のカードを作らせない
       },
     });
   }
@@ -52,7 +53,7 @@ export class CardRepository implements ICardRepository {
     data: Prisma.CardUncheckedUpdateInput,
   ): Promise<Card> {
     const result = await this.prismaService.card.updateMany({
-      where: { userId, id: cardId },
+      where: { deck: { userId }, id: cardId },
       data: data,
     });
 
@@ -66,7 +67,7 @@ export class CardRepository implements ICardRepository {
 
   async deleteCard(userId: string, deckId: bigint): Promise<Card> {
     return this.prismaService.card.delete({
-      where: { userId, id: deckId },
+      where: { deck: { userId }, id: deckId },
     });
   }
 }
