@@ -82,7 +82,14 @@ export class DeckService {
 
   async updateDeck(userId: string, request: UpdateDeckRequest) {
     const deck = await this.findByDeckId(userId, request.deckId);
-    if (!deck) throw new DeckNotFoundException(request.deckId);
+    // idが存在しないとき
+    if (!deck) {
+      throw new DeckNotFoundException(request.deckId);
+      // nameが編集されていないなら通す。違う名前なら検索する
+    } else if (deck.name !== request.name) {
+      if (await this.findByDeckName(userId, request.name))
+        throw new DecknameAlreadyExistException(request.name);
+    }
 
     const deckInput: Prisma.DeckUncheckedUpdateInput = {
       name: request.name,
