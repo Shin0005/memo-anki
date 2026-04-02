@@ -6,3 +6,10 @@ node_modules
 
 .prettierignore
 dist/
+
+# Vitest
+/coverage
+/test-results
+
+# SWC cache
+.swc
