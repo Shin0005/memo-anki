@@ -7,7 +7,7 @@ import {
 } from '../common/exceptions/domain.exceptions';
 
 import { Inject, Injectable } from '@nestjs/common';
-import { DeckService } from 'src/deck/deck.service';
+import { DeckService } from '../deck/deck.service';
 
 export enum CardType {
   NOTE = 0,
