@@ -5,7 +5,7 @@ import {
   IsString,
   Length,
 } from 'class-validator';
-import { NotBlank } from 'src/common/decorators/not-blank.decorator';
+import { NotBlank } from '../../common/decorators/not-blank.decorator';
 
 // userIdは偽装される可能性があるのでdtoでは受け取らない
 export class UpdateDeckRequest {
