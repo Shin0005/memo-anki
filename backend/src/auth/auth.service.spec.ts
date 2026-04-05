@@ -175,7 +175,7 @@ describe('AuthService', () => {
     it('異常系: パスワードが一致しない場合にLoginFailedException(Password)が飛ぶこと', async () => {
       // [試験項目 2.4]
       userServiceMock.findByUsername.mockResolvedValue(mockUser);
-      mockedCompare.mockResolvedValue(true);
+      mockedCompare.mockResolvedValue(false);
 
       await expect(service.login(loginDto)).rejects.toThrow(
         LoginFailedException,
