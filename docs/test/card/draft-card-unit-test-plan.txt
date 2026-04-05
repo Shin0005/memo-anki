@@ -1,0 +1,170 @@
+Card試験観点
+すべてを網羅せずserviceを重点的に、controllerを薄めに、repositoryはほぼ書かない。
+
+層をまたいだロジックが薄いため結合は行わず、E2Eを実施する。
+E2Eにおいて項目は各CRUDの正常と異常に分かれる。
+正常はDb更新されて、レスポンスが正常に返ること。
+異常はすべての例外は網羅せず一メソッドに一つの例外くらいが投げられるか確認すること
+その他として、認可（他人のcardを触れない）、nameの重複、typeの分岐
+
+
+controller 
+全体で確認
+ガード
+ jwtなし 401
+ jwt不正 401
+ 
+
+レスポンス(正常系のみ扱う。異常系はfilter)
+ statusコード通常成功は200
+ deleteだけ204
+ 
+認可
+ 
+
+個別
+ Create
+  バリデーション(機能するかだけなので代表例のみ)
+   deckId
+    失敗:"abc "
+   name
+    失敗：" "
+   type
+    失敗："11 "
+   content
+    成功：null,"1234", 失敗：9999
+    
+  request-dto変換(stringからbigint)
+   deckIdがbigintになっているか
+  service呼び出し（mock）
+   引数がCreateCardInputで渡されること
+  CardResponseで返却
+   期待通りのフィールド （重要フィールドだけ）
+   値が期待通り(mapping)
+   
+ Get
+  バリデーション
+   bodyがあっても正常
+  サービス呼び出し
+   引数がuseridになっていること
+   bigint変換に問題がないこと
+  CardReponseで返却
+   なし
+   
+ Update
+  バリデーション
+   cardId
+    失敗:"111.."(20桁), "abc"
+   name
+    成功："test1", 失敗：" "
+   type
+    失敗："6"
+
+  内部dto変換
+   deckIdがbigintになっているか
+  service呼び出し
+   引数がUpdateCardInputになっていること
+  CardResponseで返却
+  期待通りのフィールド
+   値が期待通り(mapping)
+   
+ Delete
+  バリデーション
+   cardid
+    成功："12", 失敗："abc"
+  service呼び出し（mock）
+   引数がuserid cardidになっていること
+  void返却
+  
+service
+
+全体
+不正なuseridでcardにアクセスできない確認を全メソッドで行う。
+認可
+
+個別
+ Create
+  デッキ確認（例外）
+   失敗時にnotfoundEx
+  cardname確認（例外）
+   失敗時にExistEx
+  type分岐
+   noteのときans,queをnull
+   quizのときcontentをnull
+  dto変換
+   なし
+  repository呼び出し(mock)
+   引数がuserid deckid CardCreateUncheckedInputになっていること
+ Get
+  repository呼び出し
+   引数がuserid？になっていること
+  
+ Update
+  カード確認（例外）
+   失敗時にnotfoundEx
+  cardname確認（自分バージョンと例外）
+   cardnameに変更を加えているときスルー
+   cardnameに変更を加えて他とかぶるならExistEx
+   変更加えてかぶらないならスルー
+  type分岐
+   noteのときans,queをnull
+   quizのときcontentをnull
+  dto変換
+   なし
+  repository呼び出し
+   引数がuserid, cardid, CardUpdateUncheckedInputになっていること
+   
+ Delete
+  カード確認（例外）
+   失敗したらNotfoundEx
+  repository呼び出し(mock)
+   引数がuserid, cardidになっていること
+
+repository
+ Create
+  省略
+ Get
+  省略
+ Update
+  更新
+   成功で件数受けとり、失敗でprismaのエラー（prismaの仕様なので試験しない）
+  更新数確認（例外）
+   0件の場合、NotfoundEx
+   1件以上の場合スルー
+  カード取得
+   成功ならreturn card
+   失敗ならnull（ただし0件ガードを張っているので試験しない）
+ Delete
+  省略
+  
+
+
+E2E
+
+正常系
+ Create
+  正しいuseridとデータで入力して、typeはnote。結果としてdbにCardができて、201が返ること、件数が1件増えていること、返却値とDBの値が一致していること。questionとanswerが入力にかかわらずnullになること
+  正しいuseridとデータで入力して、typeはquiz。結果としてdbにCardができて、201が返ること、件数が1件増えていること、返却値とDBの値が一致していること。contentが入力にかかわらずnullになること
+  
+ Get
+  正しいuseridで入力してそのユーザのすべてのCardが取得できて、200が返ること
+  あるユーザのCardを取得した際に別UserのCardが混じっていないこと
+ Update
+  正しいuseridとデータ(cardid含む)で、typeがnote。結果としてCardを更新できて、200が返ること、対象レコードが更新されていること、ほかのレコードに影響がないことquestionとanswerが入力にかかわらずnullになること
+  正しいuseridとデータ(cardid含む)で、typeがquiz。結果としてCardを更新できて、200が返ること、対象レコードが更新されていること、ほかのレコードに影響がないことcontentが入力にかかわらずnullになること
+ Delete
+  正しいuseridとcardidでCardを削除できて、204が返ること、dbから削除されていること
+
+異常系
+ Create
+  不正な値で入力するとバリデーションエラーが発生し、400が返ること
+  すでに存在するcardnameの場合にAlreadyExistExが発生し、409が返ること
+ Get
+  ログインしていない状態でguardのエラーが出て、401が返ること（認証で行うので不要!）
+ Update
+  不正な値で入力するとバリデーションエラーが発生し、400が返ること
+  すでに存在するcardnameの場合にAlreadyExistExが発生し、409が返ること
+  そのユーザに属さないcardidを入力してNotFoundExが発生し、404が返ること
+ Delete
+  不正な値で入力するとバリデーションエラーが発生し、400が返ること(cardid)
+  そのユーザに属さないcardidを入力してNotFoundExが発生し、404が返ること  
