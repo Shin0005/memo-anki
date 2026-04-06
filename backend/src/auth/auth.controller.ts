@@ -1,4 +1,4 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body, HttpStatus, HttpCode } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthResponse } from './dto/auth.response';
 import { LoginRequest } from './dto/login.request';
@@ -17,6 +17,7 @@ export class AuthController {
   }
 
   @Post('login')
+  @HttpCode(HttpStatus.OK)
   async login(@Body() request: LoginRequest) {
     const response: AuthResponse = await this.authService.login(request);
     // 今後intercepterでフォーマット形成してresponsejsonを返す。
