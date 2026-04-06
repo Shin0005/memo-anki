@@ -68,17 +68,18 @@ export class CardService {
   }
 
   async createCard(dto: CreateCardDto) {
-    // useridが同じかつcardの名前がすでにあるなら例外スロー
-    if (await this.getCardByName(dto.userId, dto.name))
-      throw new CardnameAlreadyExistException(dto.name);
-
     // 与えられたdeckidが存在するかまたはユーザのものかを検証
     const deck = await this.deckService.getDeckById(dto.userId, dto.deckId);
     if (!deck) throw new DeckNotFoundException(String(dto.deckId));
 
+    // useridが同じかつcardの名前がすでにあるなら例外スロー
+    if (await this.getCardByName(dto.userId, dto.name))
+      throw new CardnameAlreadyExistException(dto.name);
+
     const isNote = dto.type === CardType.NOTE;
     // prismaの型に入れ替えることによって安全にDB操作
-    const cardInput: Prisma.CardUncheckedUpdateInput = {
+    const cardInput: Prisma.CardUncheckedCreateInput = {
+      deckId: deck.id,
       name: dto.name,
       type: dto.type,
       content: isNote ? dto.content : null,
@@ -86,7 +87,7 @@ export class CardService {
       answer: isNote ? null : dto.answer,
     };
     // repositoryへはdeckidのチェックをさせるためにdtoの直利用を禁止
-    return await this.iCardRepository.createCard(deck.id, cardInput);
+    return await this.iCardRepository.createCard(dto.userId, cardInput);
   }
 
   async getCards(userId: string) {

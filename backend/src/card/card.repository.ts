@@ -31,7 +31,7 @@ export class CardRepository implements ICardRepository {
   }
 
   async createCard(
-    deckId: bigint,
+    userId: string,
     data: Prisma.CardUncheckedCreateInput,
   ): Promise<Card> {
     return this.prismaService.card.create({
@@ -41,6 +41,12 @@ export class CardRepository implements ICardRepository {
         content: data.content,
         question: data.question,
         answer: data.answer,
+        deck: {
+          connect: {
+            id: data.deckId,
+            userId: userId, // 実質的なwhere句
+          },
+        },
       },
     });
   }
