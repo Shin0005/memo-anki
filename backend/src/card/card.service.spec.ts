@@ -76,32 +76,38 @@ describe('CardService', () => {
 
     it('正常系: NOTE作成時に question/answer が null として渡されること', async () => {
       // [試験項目: NOTE作成]
-      cardRepoMock.findByCardname.mockResolvedValue(null);
+      // デッキチェックをパスさせる
       deckServiceMock.getDeckById.mockResolvedValue({ id: 10n } as any);
-      cardRepoMock.createCard.mockResolvedValue(mockCard);
+      cardRepoMock.findByCardname.mockResolvedValue(null);
 
-      await service.createCard({ ...createDto, type: CardType.NOTE });
+      await service.createCard(createDto);
 
       expect(cardRepoMock.createCard).toHaveBeenCalledWith(
-        10n,
+        userId,
         expect.objectContaining({
+          content: 'content',
           question: null,
           answer: null,
-          content: 'content',
         }),
       );
     });
 
     it('正常系: QUIZ作成時に content が null として渡されること', async () => {
       // [試験項目: QUIZ作成]
-      cardRepoMock.findByCardname.mockResolvedValue(null);
+      const quizDto: CreateCardDto = {
+        ...createDto,
+        type: CardType.QUIZ,
+        question: 'q',
+        answer: 'a',
+      };
+      // デッキチェックをパスさせる
       deckServiceMock.getDeckById.mockResolvedValue({ id: 10n } as any);
-      cardRepoMock.createCard.mockResolvedValue(mockCard);
+      cardRepoMock.findByCardname.mockResolvedValue(null);
 
-      await service.createCard({ ...createDto, type: CardType.QUIZ });
+      await service.createCard(quizDto);
 
       expect(cardRepoMock.createCard).toHaveBeenCalledWith(
-        10n,
+        userId,
         expect.objectContaining({
           content: null,
           question: 'q',
@@ -112,6 +118,8 @@ describe('CardService', () => {
 
     it('異常系: 名前が重複している場合に例外が飛ぶこと', async () => {
       // [試験項目: 名前重複]
+      // まずデッキチェックをパスさせる
+      deckServiceMock.getDeckById.mockResolvedValue({ id: 10n } as any);
       cardRepoMock.findByCardname.mockResolvedValue(mockCard);
 
       await expect(service.createCard(createDto)).rejects.toThrow(
