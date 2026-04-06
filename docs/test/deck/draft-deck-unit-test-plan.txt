@@ -1,0 +1,137 @@
+Deck試験観点
+単体試験ではserviceは例外とprisma呼び出し引数だけ。
+controllerは一部バリデーションとサービス呼び出し引数だけ
+
+層をまたいだロジックが存在しないので結合は行わず、E2Eを実施する。
+E2Eにおいて項目は各CRUDの正常と異常に分かれる。
+正常はDb更新されて、レスポンスが正常に返ること。
+異常はすべての例外は網羅せず一メソッドに一つの例外くらいが投げられるか確認すること
+その他として、認可（他人のdeckを触れない）、nameの重複
+
+
+単体試験
+
+controller 
+全体で確認
+ガード
+ jwtなし 401
+ jwt不正 401
+ 
+
+レスポンス(正常系のみ扱う。異常系はfilter)
+ statusコード通常成功は200
+ createは201
+ deleteは204
+ 
+認可
+ 
+
+個別
+ Create
+  バリデーション(機能するかだけなので代表例のみ)
+   name
+    失敗：" "
+   description
+    成功：null, 失敗：9999（数値）
+    
+  service呼び出し（mock）
+   引数がuserid, Requestで渡されること
+  DeckResponseで返却
+   期待通りのフィールド （重要フィールドだけ）
+   値が期待通り(mapping)
+   
+ Get
+  バリデーション
+   bodyがあっても正常
+  サービス呼び出し
+   引数がuseridになっていること
+   DeckReponseで返却
+   なし
+   
+ Update
+  バリデーション
+   deckId
+    失敗:"111.."(20桁), "abc"
+   name
+    成功："test1", 失敗：" "
+   description
+    失敗：9999
+  service呼び出し
+   引数がuserid, Requestになっていること
+  DeckResponseで返却
+   期待通りのフィールド
+   値が期待通り(mapping)
+   
+ Delete
+  バリデーション
+   deckid
+    成功："12", 失敗："abc"
+  service呼び出し（mock）
+   引数がuserid deckidになっていること
+  void返却
+  
+service
+
+全体
+不正なuseridでdeckにアクセスできない確認を全メソッドで行う。
+認可
+
+個別
+ Create
+  deckname確認（例外）
+   失敗時にExistEx
+
+  prisma呼び出し(mock)
+   引数がDeckCreateUncheckedInputになっていること
+ Get
+  prisma呼び出し
+   引数がuseridになっていること
+  
+ Update
+  デッキ確認（例外）
+   失敗時にnotfoundEx
+  deckname確認（自分バージョンと例外）
+   decknameに変更を加えているときスルー
+   decknameに変更を加えて他とかぶるならExistEx
+   変更加えてかぶらないならスルー
+  prisma呼び出し
+   引数がDeckUpdateUncheckedInputになっていること
+   deckが見つからないときNotfoundExを投げること
+   
+   
+ Delete
+  デッキ確認（例外）
+   失敗したらNotfoundEx
+  prisma呼び出し(mock)
+   引数がuserid, deckidになっていること
+   deckが見つからないときにNotFoundExを投げること
+
+
+
+E2E
+
+正常系
+ Create
+  正しいuseridでデータで入力してdbにDeckができて、201が返ること、件数が1件増えていること、返却値とDBの値が一致していること。
+ Get
+  正しいuseridで入力してそのユーザのすべてのDeckが取得できて、200が返ること
+  あるユーザのDeckを取得した際に別UserのDeckが混じっていないこと
+ Update
+  正しいuseridとデータ(deckid含む)でDeckを更新できて、200が返ること、対象レコードが更新されていること、ほかのレコードに影響がないこと
+ Delete
+  正しいuseridとdeckidでDeckを削除できて、204が返ること、dbから削除されていること
+
+異常系
+ Create
+  不正な値で入力するとバリデーションエラーが発生し、400が返ること
+  すでに存在するdecknameの場合にAlreadyExistExが発生し、409が返ること
+ Get
+  ログインしていない状態でguardのエラーが出て、401が返ること（認証で行うので不要!）
+ Update
+  不正な値で入力するとバリデーションエラーが発生し、400が返ること
+  すでに存在するdecknameの場合にAlreadyExistExが発生し、409が返ること
+  そのユーザに属さないdeckidを入力してNotFoundExが発生し、404が返ること
+ Delete
+  不正な値で入力するとバリデーションエラーが発生し、400が返ること(deckid)
+  そのユーザに属さないdeckidを入力してNotFoundExが発生し、404が返ること
+  

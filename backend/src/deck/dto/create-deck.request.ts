@@ -1,5 +1,5 @@
 import { IsOptional, IsString, Length } from 'class-validator';
-import { NotBlank } from 'src/common/decorators/not-blank.decorator';
+import { NotBlank } from '../../common/decorators/not-blank.decorator';
 
 export class CreateDeckRequest {
   @NotBlank()

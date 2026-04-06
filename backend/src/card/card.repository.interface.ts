@@ -5,10 +5,10 @@ export interface ICardRepository {
   findByCardname(userId: string, cardname: string): Promise<Card | null>;
   findCards(userId: string): Promise<Card[]>;
   createCard(
-    deckId: bigint,
-    data: Prisma.CardUncheckedUpdateInput,
+    userId: string,
+    data: Prisma.CardUncheckedCreateInput,
   ): Promise<Card>;
-  deleteCard(userId: string, deckId: bigint): Promise<void>;
+  deleteCard(userId: string, cardId: bigint): Promise<void>;
   updateCard(
     userId: string,
     cardId: bigint,

@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
 import { CardService } from './card.service';
 import { CardController } from './card.controller';
-import { PrismaModule } from 'src/prisma/prisma.module';
+import { PrismaModule } from '../prisma/prisma.module';
 import { CardRepository } from './card.repository';
-import { DeckModule } from 'src/deck/deck.module';
+import { DeckModule } from '../deck/deck.module';
 
 @Module({
   imports: [PrismaModule, DeckModule],

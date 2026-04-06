@@ -31,17 +31,22 @@ export class CardRepository implements ICardRepository {
   }
 
   async createCard(
-    deckId: bigint,
+    userId: string,
     data: Prisma.CardUncheckedCreateInput,
   ): Promise<Card> {
     return this.prismaService.card.create({
       data: {
-        deckId,
         name: data.name,
         type: data.type,
         content: data.content,
         question: data.question,
         answer: data.answer,
+        deck: {
+          connect: {
+            id: data.deckId,
+            userId: userId, // 実質的なwhere句
+          },
+        },
       },
     });
   }
@@ -65,9 +70,9 @@ export class CardRepository implements ICardRepository {
     return updatedCard!;
   }
 
-  async deleteCard(userId: string, deckId: bigint): Promise<void> {
+  async deleteCard(userId: string, cardId: bigint): Promise<void> {
     await this.prismaService.card.deleteMany({
-      where: { deck: { userId }, id: deckId },
+      where: { deck: { userId }, id: cardId },
     });
   }
 }
