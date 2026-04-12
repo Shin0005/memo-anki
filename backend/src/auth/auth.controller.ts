@@ -1,8 +1,18 @@
-import { Controller, Post, Body, HttpStatus, HttpCode } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  HttpStatus,
+  HttpCode,
+  Res,
+  Req,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthResponse } from './dto/auth.response';
 import { LoginRequest } from './dto/login.request';
 import { RegisterRequest } from './dto/register.request';
+import express from 'express';
 
 // 時間があればusername, passwordの変更削除機能を追加する
 @Controller('/auth')
@@ -10,17 +20,77 @@ export class AuthController {
   constructor(private authService: AuthService) {}
 
   @Post('register')
-  async register(@Body() request: RegisterRequest) {
-    const response: AuthResponse = await this.authService.register(request);
-    // 今後intercepterでフォーマット形成してresponseのjsonを返す。
-    return response;
+  async register(
+    @Body() request: RegisterRequest,
+    @Res({ passthrough: true }) res: express.Response,
+  ) {
+    const result = await this.authService.register(request);
+
+    // リフレッシュトークンをCookieに隠す
+    this.setRefreshTokenCookie(res, result.tokens.refreshToken);
+
+    return new AuthResponse(
+      result.username,
+      result.tokens.accessToken,
+      result.email,
+    );
   }
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  async login(@Body() request: LoginRequest) {
-    const response: AuthResponse = await this.authService.login(request);
-    // 今後intercepterでフォーマット形成してresponsejsonを返す。
-    return response;
+  async login(
+    @Body() request: LoginRequest,
+    @Res({ passthrough: true }) res: express.Response,
+  ) {
+    const result = await this.authService.login(request);
+
+    // リフレッシュトークンをCookieに隠す
+    this.setRefreshTokenCookie(res, result.tokens.refreshToken);
+
+    return new AuthResponse(
+      result.username,
+      result.tokens.accessToken, // RTを返すとメモリに保存されて大事故
+      result.email,
+    );
+  }
+
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  async refresh(
+    @Req() req: express.Request,
+    @Res({ passthrough: true }) res: express.Response,
+  ) {
+    // cookieの存在チェック（バリデーション）
+    const oldRefreshToken = req.cookies['refresh_token'] as string | undefined;
+    if (!oldRefreshToken) throw new UnauthorizedException();
+
+    // Serviceで検証と再発行（RTのpayloadにuseridが含まれる）
+    const { accessToken, refreshToken } =
+      await this.authService.refresh(oldRefreshToken);
+
+    // 新しいリフレッシュトークンをCookieに上書き
+    this.setRefreshTokenCookie(res, refreshToken);
+
+    return {
+      accessToken,
+    };
+  }
+
+  /**
+   * CookieにrefreshTokenをセットする
+   * @param res
+   * @param token リフレッシュトークン
+   */
+  private setRefreshTokenCookie(res: express.Response, token: string) {
+    res.cookie('refresh_token', token, {
+      // XSS対策でjsにcookieを取得させない
+      httpOnly: true,
+      // 開発中はhttpを使うのでfalse, デプロイはhttpsなのでtrue
+      // httpでtrueだと、loginしてもtokenが登録されない
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax', // CSRF対策はATをcookieに置くため未設定
+      path: '/',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7日間
+    });
   }
 }
