@@ -1,7 +1,11 @@
-import { Injectable } from '@nestjs/common';
-import { UserService, CreateUserInput } from '../user/user.service';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  UserService,
+  CreateUserInput,
+  UpdateRefreshTokenInput,
+} from '../user/user.service';
 import { User } from '@prisma/client';
-import { AuthResponse } from './dto/auth.response';
+
 import { LoginRequest } from './dto/login.request';
 import * as bcrypt from 'bcrypt';
 import { RegisterRequest } from './dto/register.request';
@@ -11,6 +15,12 @@ import {
   UserEmailAlreadyExistException,
   UsernameAlreadyExistException,
 } from '../common/exceptions/domain.exceptions';
+
+interface JwtPayload {
+  sub: string; // userId
+  iat: number; // 発行時刻(自動付与)
+  exp: number; // 執行時刻 (自動付与)
+}
 
 @Injectable()
 export class AuthService {
@@ -41,10 +51,44 @@ export class AuthService {
   }
 
   /**
+   * 各トークンを作成する
+   */
+  async generateTokens(userId: string) {
+    const payload = { sub: userId };
+
+    const accessToken = this.jwtService.sign(payload, {
+      expiresIn: '15m', // zustand用, moduleの定義を上書き
+    });
+    const refreshToken = this.jwtService.sign(payload, {
+      expiresIn: '7d', // httpOnlyCookie用
+    });
+    // リフレッシュトークンをハッシュ化してDBに保存
+    await this.updateRefreshToken(userId, refreshToken);
+
+    return { accessToken, refreshToken };
+  }
+
+  /**
+   * DBのリフレッシュトークンを更新
+   */
+  async updateRefreshToken(userId: string, refreshToken: string) {
+    const hash = await bcrypt.hash(refreshToken, 10);
+    // 現在時刻から7日間の期限を設定
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
+
+    const input: UpdateRefreshTokenInput = {
+      refreshTokenHash: hash,
+      refreshTokenExpiresAt: expiresAt,
+    };
+    await this.userService.updateRefreshToken(userId, input);
+  }
+
+  /**
    * 登録処理
    * 重複確認後に登録処理を行う。
    * @param request
-   * @returns AuthResponse
+   * @returns ATとユーザ情報
    */
   async register(request: RegisterRequest) {
     // 重複チェック
@@ -66,15 +110,19 @@ export class AuthService {
     // ユーザ登録
     const user: User = await this.userService.create(userInput);
     // Token発行（ペイロードに内部識別子id）
-    const accessToken = this.jwtService.sign({ sub: user.id });
-    return new AuthResponse(user.username, accessToken, user.email);
+    const tokens = await this.generateTokens(user.id);
+    return {
+      username: user.username,
+      email: user.email,
+      tokens,
+    };
   }
 
   /**
    * ログイン処理
    * 現時点でusernameとpasswordで認証
    * @param request
-   * @returns AuthResponse
+   * @returns 各tokenとuser情報
    */
   async login(request: LoginRequest) {
     // requestのusernameの存在確認
@@ -85,8 +133,36 @@ export class AuthService {
     //認証
     const isMatch = await bcrypt.compare(request.password, user.passwordHash);
     if (!isMatch) throw new LoginFailedException('Password');
-    // Token発行
-    const accessToken = this.jwtService.sign({ sub: user.id });
-    return new AuthResponse(user.username, accessToken, user.email);
+    // 各Token発行
+    const tokens = await this.generateTokens(user.id);
+
+    return {
+      username: user.username,
+      email: user.email,
+      tokens,
+    };
+  }
+
+  /**
+   * リフレッシュ
+   * 送られたrefreshTokenが認証された場合にtokenの組を返す
+   * @param userID
+   * @param refreshToken
+   */
+  async refresh(refreshToken: string) {
+    // トークンのデコード(認証と期限確認)
+    const payload = await this.jwtService.verifyAsync<JwtPayload>(refreshToken); // jsonで返るのでinterfaceで定義
+    if (!payload || !payload.sub) throw new UnauthorizedException();
+
+    // userが存在しない、またはRTとその期限が存在しないときはエラー
+    const user = await this.userService.findById(payload.sub);
+    if (!user || !user.refreshTokenHash || !user.refreshTokenExpiresAt)
+      throw new UnauthorizedException();
+
+    // requestとDBを照合(悪用を防ぐ)
+    const isMatch = await bcrypt.compare(refreshToken, user.refreshTokenHash);
+    if (!isMatch) throw new UnauthorizedException('Invalid RefreshToken');
+
+    return this.generateTokens(user.id);
   }
 }
