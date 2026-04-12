@@ -10,6 +10,11 @@ export type CreateUserInput = {
   email?: string | null;
 };
 
+export type UpdateRefreshTokenInput = {
+  refreshTokenHash: string;
+  refreshTokenExpiresAt: Date;
+};
+
 @Injectable()
 export class UserService {
   constructor(private readonly prismaService: PrismaService) {}
@@ -41,6 +46,17 @@ export class UserService {
   async findByEmail(email: string): Promise<User | null> {
     return await this.prismaService.user.findUnique({
       where: { email },
+    });
+  }
+
+  async findById(userId: string): Promise<User | null> {
+    return await this.prismaService.user.findUnique({ where: { id: userId } });
+  }
+
+  async updateRefreshToken(userId: string, input: UpdateRefreshTokenInput) {
+    return await this.prismaService.user.update({
+      where: { id: userId },
+      data: input,
     });
   }
 }
