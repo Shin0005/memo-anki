@@ -17,7 +17,7 @@
     "test:watch": "vitest",
     "test:cov": "vitest run --coverage",
     "test:debug": "vitest --inspect-brk --no-cache",
-    "test:e2e": "vitest run --config ./test/vitest-e2e.config.ts"
+    "test:int": "vitest run --config ./test/vitest-int.config.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
