@@ -9,7 +9,7 @@ import {
 import { Request, Response } from 'express';
 import { LoginFailedException } from '../exceptions/domain.exceptions';
 import { ValidationFailedException } from '../exceptions/application.exceptions';
-
+import { Prisma } from '@prisma/client';
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
   // （時間があればWinstonやPinoで出力したい）
@@ -62,6 +62,42 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       return response.status(exception.getStatus()).json({
         statusCode: exception.getStatus(),
         message: exception.message,
+        timestamp: new Date().toISOString(),
+        path: request.url,
+      });
+
+      /*
+        prisma関連エラー
+      */
+    } else if (exception instanceof Prisma.PrismaClientKnownRequestError) {
+      this.logger.warn(
+        `Prisma Known Error [${exception.code}] - Path: ${request.url}`,
+      );
+
+      let status = HttpStatus.INTERNAL_SERVER_ERROR;
+      let message = 'Database Error';
+
+      // プロパティ―コードで分岐
+      switch (exception.code) {
+        case 'P2002': // 一意制約違反
+          status = HttpStatus.CONFLICT;
+          message = 'Duplicate field value';
+          break;
+        case 'P2003': // FK制約違反
+          status = HttpStatus.BAD_REQUEST;
+          message = 'Foreign Key not found';
+          break;
+        case 'P2025': // レコード未検出
+          status = HttpStatus.NOT_FOUND;
+          message = 'Record not found';
+          break;
+        default:
+          // その他は500で処理
+          break;
+      }
+      return response.status(status).json({
+        statusCode: status,
+        message: message,
         timestamp: new Date().toISOString(),
         path: request.url,
       });
