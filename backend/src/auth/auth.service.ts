@@ -151,16 +151,8 @@ export class AuthService {
    */
   async refresh(refreshToken: string) {
     // トークンのデコード(認証と期限確認)
-    let payload: JwtPayload;
-    //
-    // trycatchを一時的に実装しているが、ブランチ終了後にfilterに実装を移動する。
-    //
-    try {
-      payload = await this.jwtService.verifyAsync<JwtPayload>(refreshToken); // jsonで返るのでinterface(typeでも可)で定義
-    } catch {
-      // 不正なjwtのときに投げられるJsonWebTokenError等を401に変換
-      throw new UnauthorizedException();
-    }
+    // 不正なjwtのときJsonWebTokenError, 期限切れのときはTokenExpiredError
+    const payload = await this.jwtService.verifyAsync<JwtPayload>(refreshToken); // jsonで返るのでinterface(typeでも可)で定義
     if (!payload || !payload.sub) throw new UnauthorizedException();
 
     // userが存在しない、またはRTとその期限が存在しないときはエラー

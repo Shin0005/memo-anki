@@ -10,6 +10,8 @@ import { Request, Response } from 'express';
 import { LoginFailedException } from '../exceptions/domain.exceptions';
 import { ValidationFailedException } from '../exceptions/application.exceptions';
 import { Prisma } from '@prisma/client';
+import { JsonWebTokenError, TokenExpiredError } from 'jsonwebtoken';
+
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
   // （時間があればWinstonやPinoで出力したい）
@@ -62,6 +64,32 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       return response.status(exception.getStatus()).json({
         statusCode: exception.getStatus(),
         message: exception.message,
+        timestamp: new Date().toISOString(),
+        path: request.url,
+      });
+
+      /*
+        JWT関連エラー
+      */
+      // JWTの期限切れ
+    } else if (exception instanceof TokenExpiredError) {
+      this.logger.warn(
+        `JWT Expired:${exception.message} - Path: ${request.url}`,
+      );
+      return response.status(HttpStatus.UNAUTHORIZED).json({
+        statusCode: HttpStatus.UNAUTHORIZED,
+        message: 'JWT Expired',
+        timestamp: new Date().toISOString(),
+        path: request.url,
+      });
+      // 不正なJWT
+    } else if (exception instanceof JsonWebTokenError) {
+      this.logger.warn(
+        `Invalid JWT:${exception.message} - Path: ${request.url}`,
+      );
+      return response.status(HttpStatus.UNAUTHORIZED).json({
+        statusCode: HttpStatus.UNAUTHORIZED,
+        message: 'Invalid JWT',
         timestamp: new Date().toISOString(),
         path: request.url,
       });
