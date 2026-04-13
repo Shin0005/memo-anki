@@ -3,7 +3,7 @@ import path from 'path';
 
 export default defineConfig({
   test: {
-    include: ['**/*.e2e-spec.ts'], // E2Eテストファイルを対象にする
+    include: ['**/*.integration-spec.ts'], // 結合テストファイルを対象にする
     globals: true,
     environment: 'node',
     alias: {
