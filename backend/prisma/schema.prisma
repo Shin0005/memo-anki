@@ -16,15 +16,17 @@ datasource db {
 
 // Userテーブル
 model User {
-  id           String   @id @default(uuid())
-  username     String   @unique
-  email        String?  @unique //Null許容
-  passwordHash String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  decks        Deck[]
+  id                    String    @id @default(uuid())
+  username              String    @unique
+  email                 String?   @unique
+  passwordHash          String
+  refreshTokenHash      String?
+  refreshTokenExpiresAt DateTime? // refreshToken有効期限
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  decks                 Deck[]
 
-  @@map("users") // テーブル名をスネークケースにする
+  @@map("users")
 }
 
 // Deckテーブル
