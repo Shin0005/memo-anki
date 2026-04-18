@@ -1,23 +1,14 @@
-import js from '@eslint/js';
-import tsPlugin from '@typescript-eslint/eslint-plugin';
-import tsParser from '@typescript-eslint/parser';
+import baseConfig from '../eslint.config.mjs';
 
 export default [
-    js.configs.recommended,
+    ...baseConfig,
     {
         files: ['**/*.ts'],
         languageOptions: {
-            parser: tsParser,
             parserOptions: {
-                project: './tsconfig.json',
+                projectService: true,    // v8以上の場合
+                tsconfigRootDir: import.meta.dirname,
             },
-        },
-        plugins: {
-            '@typescript-eslint': tsPlugin,
-        },
-        rules: {
-            ...tsPlugin.configs.recommended.rules,
-            '@typescript-eslint/no-explicit-any': 'warn',
         },
     },
 ];
