@@ -1,0 +1,77 @@
+# ============================================================
+# CI パイプライン (Frontend)
+#
+# 【トリガー設計の理由】
+# - push: docs/ 以外の全ブランチでCIを実行し、早期にエラーを検知する
+# - pull_request: main へのPR時にCIを必須化するため
+# ============================================================
+name: Frontend CI
+
+concurrency: # 古いコミットのCIを自動でキャンセル（並列実行制御）
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  push:
+    branches:
+      - '**' # すべてのブランチを対象
+      - '!docs/**' # docs/ で始まるブランチは除外
+    paths:
+      - 'frontend/**'
+      - 'package.json'
+      - 'docker-compose.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'frontend/**'
+      - 'package.json'
+      - 'docker-compose.yml'
+
+jobs:
+  # ============================================================
+  # Frontend CI
+  # ============================================================
+  frontend:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # backendと同じ理由でキャッシュを設定
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: frontend
+
+      # ------------------------------------------------------------
+      # Prettierフォーマットチェック
+      # ------------------------------------------------------------
+      - name: Format check
+        run: npx prettier --check "{app,features,lib}/**/*.{ts,tsx}"
+        working-directory: frontend
+
+      # ------------------------------------------------------------
+      # ESLint（Next.js標準）
+      # ------------------------------------------------------------
+      - name: Lint
+        run: npm run lint
+        working-directory: frontend
+
+      # ------------------------------------------------------------
+      # Next.jsビルド確認
+      #
+      # Next.js 15はビルド時にTypeScript型チェック・ページの
+      # 静的解析も行うため、lintだけでは拾えないエラーを検出できる。
+      # ただし、環境変数（API URLなど）が未設定だとビルドが失敗する場合があるため、
+      # 環境変数が必要になったら GitHub Secrets + env: を追加する。
+      # ------------------------------------------------------------
+      - name: Build
+        run: npm run build
+        working-directory: frontend

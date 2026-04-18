@@ -29,7 +29,7 @@
       "npx prettier --write",
       "npx eslint --fix"
     ],
-    "frontend/app/**/*.{ts,tsx}": [
+    "frontend/{app,features,lib}/**/*.{ts,tsx}": [
       "npx prettier --write",
       "npx eslint --fix"
     ]
