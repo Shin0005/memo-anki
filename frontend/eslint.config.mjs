@@ -1,26 +1,28 @@
-import { defineConfig, globalIgnores } from 'eslint/config';
-import nextVitals from 'eslint-config-next/core-web-vitals';
-import nextTs from 'eslint-config-next/typescript';
+import { FlatCompat } from '@eslint/eslintrc';
+import baseConfig from '../eslint.config.mjs';
 
-const eslintConfig = defineConfig([
-  ...nextVitals,
-  ...nextTs,
+const compat = new FlatCompat({
+  baseDirectory: import.meta.dirname,
+});
+
+export default [
+  ...baseConfig,
+  ...compat.extends('next/core-web-vitals', 'next/typescript'),
   {
-    // Reactのバージョンを自動検出する設定を追加して、プラグインの互換性エラーを抑制
     settings: {
-      react: {
-        version: 'detect',
+      react: { version: 'detect' },
+    },
+    languageOptions: {
+      parserOptions: {
+        projectService: true,    // v8以上の場合
+        tsconfigRootDir: import.meta.dirname,
       },
     },
+    rules: {
+      // Next.js の App Router では named export が必須のケースがある
+      'import/no-default-export': 'off',
+      // React 19 では import React 不要
+      'react/react-in-jsx-scope': 'off',
+    },
   },
-  // Override default ignores of eslint-config-next.
-  globalIgnores([
-    // Default ignores of eslint-config-next:
-    '.next/**',
-    'out/**',
-    'build/**',
-    'next-env.d.ts',
-  ]),
-]);
-
-export default eslintConfig;
+];
