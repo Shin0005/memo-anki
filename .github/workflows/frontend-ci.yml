@@ -18,14 +18,18 @@ on:
       - '!docs/**' # docs/ で始まるブランチは除外
     paths:
       - 'frontend/**'
+      - 'shared/**' # 【追加】sharedの変更もfrontendに影響するためトリガー対象に
       - 'package.json'
+      - 'package-lock.json' # 【追加】ルートlockファイル変更時もCI実行
       - 'docker-compose.yml'
   pull_request:
     branches:
       - main
     paths:
       - 'frontend/**'
+      - 'shared/**' # 【追加】上記と同じ理由
       - 'package.json'
+      - 'package-lock.json' # 【追加】上記と同じ理由
       - 'docker-compose.yml'
 
 jobs:
@@ -39,16 +43,31 @@ jobs:
       - uses: actions/checkout@v4
 
       # backendと同じ理由でキャッシュを設定
+      #
+      # 【変更】cache-dependency-path をルートに変更。
+      # npm workspacesではlockファイルがルート1箇所に集約される。
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
+          cache-dependency-path: package-lock.json
 
+      # 【変更】working-directory を削除しルートで実行。
+      # npm workspacesではルートの npm ci で全workspaceがインストールされる。
       - name: Install dependencies
         run: npm ci
-        working-directory: frontend
+
+      # ------------------------------------------------------------
+      # 【追加】sharedパッケージのビルド
+      #
+      # 現時点ではfrontendはsharedを直接参照していないが、
+      # 将来Zodスキーマやフォームバリデーションで参照する予定。
+      # あらかじめビルド可能な状態にしておくことで、shared変更時の
+      # 影響検知を早期化できる。
+      # ------------------------------------------------------------
+      - name: Build shared package
+        run: npm run build --workspace=@memo-anki/shared
 
       # ------------------------------------------------------------
       # Prettierフォーマットチェック
@@ -59,10 +78,11 @@ jobs:
 
       # ------------------------------------------------------------
       # ESLint（Next.js標準）
+      #
+      # 【変更】working-directory から --workspace フラグに統一。
       # ------------------------------------------------------------
       - name: Lint
-        run: npm run lint
-        working-directory: frontend
+        run: npm run lint --workspace=frontend
 
       # ------------------------------------------------------------
       # Next.jsビルド確認
@@ -71,7 +91,8 @@ jobs:
       # 静的解析も行うため、lintだけでは拾えないエラーを検出できる。
       # ただし、環境変数（API URLなど）が未設定だとビルドが失敗する場合があるため、
       # 環境変数が必要になったら GitHub Secrets + env: を追加する。
+      #
+      # 【変更】working-directory から --workspace フラグに統一。
       # ------------------------------------------------------------
       - name: Build
-        run: npm run build
-        working-directory: frontend
+        run: npm run build --workspace=frontend

@@ -18,14 +18,18 @@ on:
       - '!docs/**' # docs/ で始まるブランチは除外
     paths:
       - 'backend/**'
+      - 'shared/**' # 【追加】sharedの変更もbackendに影響するためトリガー対象に
       - 'package.json'
+      - 'package-lock.json' # 【追加】ルートlockファイル変更時もCI実行（依存関係変更検知）
       - 'docker-compose.yml'
   pull_request:
     branches:
       - main
     paths:
       - 'backend/**'
+      - 'shared/**' # 【追加】上記と同じ理由
       - 'package.json'
+      - 'package-lock.json' # 【追加】上記と同じ理由
       - 'docker-compose.yml'
 
 jobs:
@@ -46,13 +50,17 @@ jobs:
       # キャッシュなしだと1ジョブあたり1〜2分余分にかかる。
       # setup-node の cache オプションはpackage-lock.jsonのハッシュを
       # キーにするため、lock fileが変わらない限りキャッシュが有効になる。
+      #
+      # 【変更】cache-dependency-path をルートに変更。
+      # npm workspacesではlockファイルがルート1箇所に集約されるため、
+      # 旧来の backend/package-lock.json は存在しない。
       # ------------------------------------------------------------
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: 'npm'
-          cache-dependency-path: backend/package-lock.json
+          cache-dependency-path: package-lock.json
 
       # ------------------------------------------------------------
       # 依存関係をインストール
@@ -60,10 +68,25 @@ jobs:
       # npm ci を使う理由
       # npm install はpackage.jsonの範囲内で依存を更新する可能性があり、
       # CI実行ごとに異なるバージョンがインストールされる恐れがある。
+      #
+      # 【変更】working-directory を削除しルートで実行。
+      # npm workspacesはルートで npm ci を一度実行すると、
+      # backend/frontend/shared 全てのworkspaceの依存関係が
+      # まとめてインストールされる。
       # ------------------------------------------------------------
       - name: Install dependencies
         run: npm ci
-        working-directory: backend
+
+      # ------------------------------------------------------------
+      # 【追加】sharedパッケージのビルド
+      #
+      # backendは @memo-anki/shared から型やZodスキーマを参照する。
+      # sharedはCommonJSでビルドされた shared/dist/ を公開しているため、
+      # distが存在しないとbackendの型解決・ビルドが失敗する。
+      # 依存関係インストール後、他のステップより先にビルドする必要がある。
+      # ------------------------------------------------------------
+      - name: Build shared package
+        run: npm run build --workspace=@memo-anki/shared
 
       # ------------------------------------------------------------
       # Prisma初期化
@@ -92,10 +115,12 @@ jobs:
 
       # ------------------------------------------------------------
       # ESLintチェック
+      #
+      # 【変更】working-directory から --workspace フラグに統一。
+      # モノレポでは --workspace 指定の方が実行対象が明示的で分かりやすい。
       # ------------------------------------------------------------
       - name: Lint
-        run: npm run lint
-        working-directory: backend
+        run: npm run lint --workspace=backend
 
       # ------------------------------------------------------------
       # ビルド確認
@@ -103,10 +128,11 @@ jobs:
       # TypeScriptのコンパイルエラーをCIで検出する。
       # lintだけでは型エラーは検出できない
       # NestJSのnest buildはtscをラップしているため型チェックも行われる。
+      #
+      # 【変更】working-directory から --workspace フラグに統一。
       # ------------------------------------------------------------
       - name: Build
-        run: npm run build
-        working-directory: backend
+        run: npm run build --workspace=backend
 
       # ------------------------------------------------------------
       # ユニットテスト
@@ -114,7 +140,8 @@ jobs:
       # 【現状】環境設定時点ではテストファイルが少ない可能性があるため
       # --passWithNoTests を付けてテストが0件でも失敗しないようにしている。
       # テストが増えるにつれてこのオプションを外す。 -> 外した。
+      #
+      # 【変更】working-directory から --workspace フラグに統一。
       # ------------------------------------------------------------
       - name: Test
-        run: npm test
-        working-directory: backend
+        run: npm test --workspace=backend
