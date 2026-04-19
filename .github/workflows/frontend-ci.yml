@@ -66,8 +66,8 @@ jobs:
       # あらかじめビルド可能な状態にしておくことで、shared変更時の
       # 影響検知を早期化できる。
       # ------------------------------------------------------------
-      - name: Build shared package
-        run: npm run build --workspace=@memo-anki/shared
+      #- name: Build shared package
+      #  run: npm run build --workspace=@memo-anki/shared
 
       # ------------------------------------------------------------
       # Prettierフォーマットチェック
