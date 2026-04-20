@@ -1,17 +1,15 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { customValidationPipe } from './common/pipes/validation.pipe';
 import { GlobalExceptionFilter } from './common/filters/global.exception.filter';
 import cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // バリデーション
-  app.useGlobalPipes(customValidationPipe);
-
-  //filter
+  // グローバルフィルター
   app.useGlobalFilters(new GlobalExceptionFilter());
+
+  // pipesは個別でつける設定に変更
 
   // CORS
   app.enableCors({

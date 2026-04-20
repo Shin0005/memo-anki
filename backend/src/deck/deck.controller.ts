@@ -8,14 +8,21 @@ import {
   Post,
   Put,
   UseGuards,
+  UsePipes,
 } from '@nestjs/common';
+import {
+  CreateDeckRequest,
+  CreateDeckRequestSchema,
+  UpdateDeckRequest,
+  UpdateDeckRequestSchema,
+  RequiredDeckIdRequest,
+  RequiredDeckIdRequestSchema,
+} from '@memo-anki/shared';
+import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
 import { DeckService } from './deck.service';
-import { CreateDeckRequest } from './dto/create-deck.request';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { GetUserId } from '../common/decorators/get-userid.decorator';
-import { UpdateDeckRequest } from './dto/update-deck.request';
 import { DeckResponse } from './dto/deck.response';
-import { RequiredDeckIdRequest } from './dto/required-deckid.request';
 
 @Controller('deck')
 export class DeckController {
@@ -23,6 +30,7 @@ export class DeckController {
 
   @UseGuards(JwtAuthGuard)
   @Post()
+  @UsePipes(new ZodValidationPipe(CreateDeckRequestSchema))
   async createDeck(
     @GetUserId() userId: string,
     @Body() request: CreateDeckRequest,
@@ -40,6 +48,7 @@ export class DeckController {
 
   @UseGuards(JwtAuthGuard)
   @Put()
+  @UsePipes(new ZodValidationPipe(UpdateDeckRequestSchema))
   async updateDeck(
     @GetUserId() userId: string,
     @Body() request: UpdateDeckRequest,
@@ -51,6 +60,7 @@ export class DeckController {
   @UseGuards(JwtAuthGuard)
   @Delete()
   @HttpCode(HttpStatus.NO_CONTENT)
+  @UsePipes(new ZodValidationPipe(RequiredDeckIdRequestSchema))
   async deleteDeck(
     @GetUserId() userId: string,
     @Body() request: RequiredDeckIdRequest,

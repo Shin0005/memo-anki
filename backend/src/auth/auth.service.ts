@@ -6,15 +6,15 @@ import {
 } from '../user/user.service';
 import { User } from '@prisma/client';
 
-import { LoginRequest } from './dto/login.request';
 import * as bcrypt from 'bcrypt';
-import { RegisterRequest } from './dto/register.request';
+
 import { JwtService } from '@nestjs/jwt';
 import {
   LoginFailedException,
   UserEmailAlreadyExistException,
   UsernameAlreadyExistException,
 } from '../common/exceptions/domain.exceptions';
+import { RegisterRequest, LoginRequest } from '@memo-anki/shared';
 
 interface JwtPayload {
   sub: string; // userId
