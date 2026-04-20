@@ -17,9 +17,11 @@
     "test:watch": "vitest",
     "test:cov": "vitest run --coverage",
     "test:debug": "vitest --inspect-brk --no-cache",
-    "test:int": "vitest run --config ./test/vitest-int.config.ts"
+    "test:int": "vitest run --config ./test/vitest-int.config.ts",
+    "generate:openapi": "GENERATE_OPENAPI=true ts-node -r tsconfig-paths/register -P tsconfig.scripts.json scripts/generate-openapi.ts"
   },
   "dependencies": {
+    "@memo-anki/shared": "*",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.3",
     "@nestjs/core": "^11.0.1",
@@ -27,6 +29,7 @@
     "@nestjs/mapped-types": "^2.0.6",
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.0.1",
+    "@nestjs/swagger": "^11.3.2",
     "@prisma/client": "^6.19.2",
     "bcrypt": "^6.0.0",
     "class-transformer": "^0.5.1",
@@ -37,8 +40,7 @@
     "passport-jwt": "^4.0.1",
     "prisma": "^6.19.2",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.1",
-    "@memo-anki/shared": "*"
+    "rxjs": "^7.8.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",

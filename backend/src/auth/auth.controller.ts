@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthResponse } from './dto/auth.response';
+import { RefreshResponse } from './dto/refresh.response';
 import { LoginRequest } from './dto/login.request';
 import { RegisterRequest } from './dto/register.request';
 import express from 'express';
@@ -71,9 +72,7 @@ export class AuthController {
     // 新しいリフレッシュトークンをCookieに上書き
     this.setRefreshTokenCookie(res, refreshToken);
 
-    return {
-      accessToken,
-    };
+    return new RefreshResponse(accessToken);
   }
 
   /**

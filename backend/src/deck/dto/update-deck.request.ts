@@ -1,3 +1,4 @@
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsNotEmpty,
   IsNumberString,
@@ -9,15 +10,18 @@ import { NotBlank } from '../../common/decorators/not-blank.decorator';
 
 // userIdは偽装される可能性があるのでdtoでは受け取らない
 export class UpdateDeckRequest {
+  @ApiProperty({ example: '1', description: 'bigint ID of the deck' })
   @IsNotEmpty()
-  @IsNumberString() //bigintも対応
-  @Length(1, 19) // bigint想定で長さ19以内に指定。
+  @IsNumberString()
+  @Length(1, 19)
   deckId: string;
 
+  @ApiProperty({ example: 'Updated Deck Name', maxLength: 50 })
   @NotBlank()
   @Length(1, 50)
   name: string;
 
+  @ApiPropertyOptional({ example: 'Updated description', maxLength: 5000 })
   @IsOptional()
   @IsString()
   @Length(1, 5000)

@@ -70,6 +70,43 @@ jobs:
         run: npm ci
 
       # ------------------------------------------------------------
+      # Prisma初期化
+      #
+      # Prismaの型は node_modules/.prisma/client/ に自動生成される
+      # ファイルの中にある。このフォルダはgitignoreされているため、
+      # CIの npm install だけでは型情報が読み込まれない。
+      # generate:openapi スクリプトも AppModule 経由で Prisma 型を参照するため、
+      # OpenAPI生成より前に実行する必要がある。
+      # ------------------------------------------------------------
+      - name: Generate Prisma Client
+        run: npx prisma generate
+        working-directory: backend
+        env:
+          DATABASE_URL: 'postgresql://dummy:dummy@localhost:5432/dummy'
+
+      # ------------------------------------------------------------
+      # OpenAPI仕様の生成
+      #
+      # GENERATE_OPENAPI=true により PrismaService.$connect() をスキップし、
+      # DBなしで NestJS をブートストラップして openapi.json を生成する。
+      # 出力先は shared/openapi.json。
+      # ------------------------------------------------------------
+      - name: Generate OpenAPI spec
+        run: npm run generate:openapi --workspace=backend
+        env:
+          DATABASE_URL: 'postgresql://dummy:dummy@localhost:5432/dummy'
+          JWT_SECRET: 'dummy'
+
+      # ------------------------------------------------------------
+      # sharedの型生成
+      #
+      # openapi-typescript が shared/openapi.json から shared/src/api.ts を生成する。
+      # この後の shared ビルドおよび backend ビルドで必要になる。
+      # ------------------------------------------------------------
+      - name: Generate shared types
+        run: npm run generate --workspace=@memo-anki/shared
+
+      # ------------------------------------------------------------
       # sharedパッケージのビルド
       #
       # backendは @memo-anki/shared を dependencies で参照しており、
@@ -77,19 +114,6 @@ jobs:
       # ------------------------------------------------------------
       - name: Build shared package
         run: npm run build --workspace=@memo-anki/shared
-
-      # ------------------------------------------------------------
-      # Prisma初期化
-      #
-      # Prismaの型は node_modules/.prisma/client/ に自動生成される
-      # ファイルの中にある。このフォルダはgitignoreされているため、
-      # CIの npm install だけでは型情報が読み込まれない。
-      # ------------------------------------------------------------
-      - name: Generate Prisma Client
-        run: npx prisma generate
-        working-directory: backend
-        env:
-          DATABASE_URL: 'postgresql://dummy:dummy@localhost:5432/dummy'
 
       # ------------------------------------------------------------
       # Prettierフォーマットチェック
