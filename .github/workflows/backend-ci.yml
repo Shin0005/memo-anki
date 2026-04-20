@@ -18,14 +18,18 @@ on:
       - '!docs/**' # docs/ で始まるブランチは除外
     paths:
       - 'backend/**'
+      - 'shared/**'
       - 'package.json'
+      - 'package-lock.json'
       - 'docker-compose.yml'
   pull_request:
     branches:
       - main
     paths:
       - 'backend/**'
+      - 'shared/**'
       - 'package.json'
+      - 'package-lock.json'
       - 'docker-compose.yml'
 
 jobs:
@@ -52,7 +56,7 @@ jobs:
         with:
           node-version: 22
           cache: 'npm'
-          cache-dependency-path: backend/package-lock.json
+          cache-dependency-path: package-lock.json
 
       # ------------------------------------------------------------
       # 依存関係をインストール
@@ -60,10 +64,19 @@ jobs:
       # npm ci を使う理由
       # npm install はpackage.jsonの範囲内で依存を更新する可能性があり、
       # CI実行ごとに異なるバージョンがインストールされる恐れがある。
+      # npm workspacesのため、ルートで一度実行すれば全workspaceがインストールされる。
       # ------------------------------------------------------------
       - name: Install dependencies
         run: npm ci
-        working-directory: backend
+
+      # ------------------------------------------------------------
+      # sharedパッケージのビルド
+      #
+      # backendは @memo-anki/shared を dependencies で参照しており、
+      # dist/ が存在しないと型解決・ビルドが失敗する。
+      # ------------------------------------------------------------
+      - name: Build shared package
+        run: npm run build --workspace=@memo-anki/shared
 
       # ------------------------------------------------------------
       # Prisma初期化
@@ -94,8 +107,7 @@ jobs:
       # ESLintチェック
       # ------------------------------------------------------------
       - name: Lint
-        run: npm run lint
-        working-directory: backend
+        run: npm run lint --workspace=backend
 
       # ------------------------------------------------------------
       # ビルド確認
@@ -105,8 +117,7 @@ jobs:
       # NestJSのnest buildはtscをラップしているため型チェックも行われる。
       # ------------------------------------------------------------
       - name: Build
-        run: npm run build
-        working-directory: backend
+        run: npm run build --workspace=backend
 
       # ------------------------------------------------------------
       # ユニットテスト
@@ -116,5 +127,4 @@ jobs:
       # テストが増えるにつれてこのオプションを外す。 -> 外した。
       # ------------------------------------------------------------
       - name: Test
-        run: npm test
-        working-directory: backend
+        run: npm test --workspace=backend
