@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { LoginFailedException } from '../exceptions/domain.exceptions';
-import { ValidationFailedException } from '../exceptions/application.exceptions';
+import { ZodValidationException } from '../exceptions/application.exceptions';
 import { Prisma } from '@prisma/client';
 import { JsonWebTokenError, TokenExpiredError } from 'jsonwebtoken';
 
@@ -25,13 +25,13 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     /*
       validation例外（pipeでthrow）
     */
-    if (exception instanceof ValidationFailedException) {
+    if (exception instanceof ZodValidationException) {
       this.logger.warn(`${exception.message} - Path: ${request.url}`);
 
-      // Json例） "errors":[{password: '8文字以上で入力してください'}, ... ,{...}]
-      const details = exception.validationErrors.map((err) => ({
-        field: err.property,
-        message: Object.values(err.constraints || {})[0],
+      // ZodErrorを整形
+      const details = exception.zodError.errors.map((err) => ({
+        field: err.path.join('.'),
+        message: err.message,
       }));
 
       return response.status(HttpStatus.BAD_REQUEST).json({

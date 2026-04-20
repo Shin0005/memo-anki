@@ -85,8 +85,8 @@ jobs:
       # distが存在しないとbackendの型解決・ビルドが失敗する。
       # 依存関係インストール後、他のステップより先にビルドする必要がある。
       # ------------------------------------------------------------
-      #- name: Build shared package
-      #  run: npm run build --workspace=@memo-anki/shared
+      - name: Build shared package
+        run: npm run build --workspace=@memo-anki/shared
 
       # ------------------------------------------------------------
       # Prisma初期化
@@ -131,8 +131,8 @@ jobs:
       #
       # 【変更】working-directory から --workspace フラグに統一。
       # ------------------------------------------------------------
-      #- name: Build
-      #  run: npm run build --workspace=backend
+      - name: Build
+        run: npm run build --workspace=backend
 
       # ------------------------------------------------------------
       # ユニットテスト
@@ -143,5 +143,5 @@ jobs:
       #
       # 【変更】working-directory から --workspace フラグに統一。
       # ------------------------------------------------------------
-      #- name: Test
-      #  run: npm test --workspace=backend
+      - name: Test
+        run: npm test --workspace=backend

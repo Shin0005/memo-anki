@@ -1,13 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '.././prisma/prisma.service';
-import { CreateDeckRequest } from './dto/create-deck.request';
 import { Deck, Prisma } from '@prisma/client';
-import { UpdateDeckRequest } from './dto/update-deck.request';
 import {
   DecknameAlreadyExistException,
   DeckNotFoundException,
 } from '../common/exceptions/domain.exceptions';
-import { RequiredDeckIdRequest } from './dto/required-deckid.request';
+import {
+  CreateDeckRequest,
+  UpdateDeckRequest,
+  RequiredDeckIdRequest,
+} from '@memo-anki/shared';
 
 // 将来的にserviceの引数をtype or interfaceに変更する可能性がある
 // このmodule以外、特にnotion連携機能で使う可能性がある。

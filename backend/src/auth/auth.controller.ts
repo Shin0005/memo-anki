@@ -7,12 +7,15 @@ import {
   Res,
   Req,
   UnauthorizedException,
+  UsePipes,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthResponse } from './dto/auth.response';
-import { LoginRequest } from './dto/login.request';
-import { RegisterRequest } from './dto/register.request';
 import express from 'express';
+
+// Zodスキーマをインポート
+import { LoginRequestSchema, RegisterRequestSchema } from '@memo-anki/shared';
+import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
 
 // 時間があればusername, passwordの変更削除機能を追加する
 @Controller('/auth')
@@ -20,11 +23,13 @@ export class AuthController {
   constructor(private authService: AuthService) {}
 
   @Post('register')
+  @UsePipes(new ZodValidationPipe(RegisterRequestSchema))
   async register(
-    @Body() request: RegisterRequest,
+    @Body() body: unknown,
     @Res({ passthrough: true }) res: express.Response,
   ) {
-    const result = await this.authService.register(request);
+    const validated = RegisterRequestSchema.parse(body);
+    const result = await this.authService.register(validated);
 
     // リフレッシュトークンをCookieに隠す
     this.setRefreshTokenCookie(res, result.tokens.refreshToken);
@@ -38,11 +43,13 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @UsePipes(new ZodValidationPipe(LoginRequestSchema))
   async login(
-    @Body() request: LoginRequest,
+    @Body() body: unknown,
     @Res({ passthrough: true }) res: express.Response,
   ) {
-    const result = await this.authService.login(request);
+    const validated = LoginRequestSchema.parse(body);
+    const result = await this.authService.login(validated);
 
     // リフレッシュトークンをCookieに隠す
     this.setRefreshTokenCookie(res, result.tokens.refreshToken);

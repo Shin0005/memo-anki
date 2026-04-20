@@ -1,5 +1,6 @@
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { ValidationError } from 'class-validator';
+import { ZodError } from 'zod';
 
 /**
  * 抽象アプリケーション例外 継承させて使用する
@@ -16,6 +17,15 @@ export abstract class ApplicationException extends HttpException {
  */
 export class ValidationFailedException extends ApplicationException {
   constructor(public readonly validationErrors: ValidationError[]) {
+    super('Validation Failed.', HttpStatus.BAD_REQUEST);
+  }
+}
+
+/**
+ * Validation系 (Zod用)
+ */
+export class ZodValidationException extends ApplicationException {
+  constructor(public readonly zodError: ZodError) {
     super('Validation Failed.', HttpStatus.BAD_REQUEST);
   }
 }
