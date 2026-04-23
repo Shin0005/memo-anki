@@ -16,21 +16,9 @@ on:
     branches:
       - '**' # すべてのブランチを対象
       - '!docs/**' # docs/ で始まるブランチは除外
-    paths:
-      - 'frontend/**'
-      - 'shared/**'
-      - 'package.json'
-      - 'package-lock.json'
-      - 'docker-compose.yml'
   pull_request:
     branches:
       - main
-    paths:
-      - 'frontend/**'
-      - 'shared/**'
-      - 'package.json'
-      - 'package-lock.json'
-      - 'docker-compose.yml'
 
 jobs:
   # ============================================================
@@ -42,9 +30,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # ------------------------------------------------------------
+      # 変更パスの検知 (CIをスキップせずSuccessとして扱うための処理)
+      # ------------------------------------------------------------
+      - name: Check paths
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            frontend_changes:
+              - 'frontend/**'
+              - 'shared/**'
+              - 'package.json'
+              - 'package-lock.json'
+              - 'docker-compose.yml'
+
       # backendと同じ理由でキャッシュを設定
       # npm workspacesのためlockファイルはルート1箇所。
       - name: Setup Node.js
+        if: steps.filter.outputs.frontend_changes == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -53,6 +57,7 @@ jobs:
 
       # npm workspacesのためルートで一度npm ciすれば全workspaceがインストールされる。
       - name: Install dependencies
+        if: steps.filter.outputs.frontend_changes == 'true'
         run: npm ci
 
       # ------------------------------------------------------------
@@ -62,6 +67,7 @@ jobs:
       # OpenAPI生成より前に実行する必要がある。
       # ------------------------------------------------------------
       - name: Generate Prisma Client
+        if: steps.filter.outputs.frontend_changes == 'true'
         run: npx prisma generate
         working-directory: backend
         env:
@@ -75,6 +81,7 @@ jobs:
       # 出力先は shared/openapi.json。
       # ------------------------------------------------------------
       - name: Generate OpenAPI spec
+        if: steps.filter.outputs.frontend_changes == 'true'
         run: npm run generate:openapi --workspace=backend
         env:
           DATABASE_URL: 'postgresql://dummy:dummy@localhost:5432/dummy'
@@ -87,6 +94,7 @@ jobs:
       # この後の shared ビルドおよび frontend ビルドで必要になる。
       # ------------------------------------------------------------
       - name: Generate shared types
+        if: steps.filter.outputs.frontend_changes == 'true'
         run: npm run generate --workspace=@memo-anki/shared
 
       # ------------------------------------------------------------
@@ -96,12 +104,14 @@ jobs:
       # 型解決・ビルドが失敗する可能性がある。
       # ------------------------------------------------------------
       - name: Build shared package
+        if: steps.filter.outputs.frontend_changes == 'true'
         run: npm run build --workspace=@memo-anki/shared
 
       # ------------------------------------------------------------
       # Prettierフォーマットチェック
       # ------------------------------------------------------------
       - name: Format check
+        if: steps.filter.outputs.frontend_changes == 'true'
         run: npx prettier --check "{app,features,lib}/**/*.{ts,tsx}"
         working-directory: frontend
 
@@ -109,6 +119,7 @@ jobs:
       # ESLint（Next.js標準）
       # ------------------------------------------------------------
       - name: Lint
+        if: steps.filter.outputs.frontend_changes == 'true'
         run: npm run lint --workspace=frontend
 
       # ------------------------------------------------------------
@@ -120,4 +131,5 @@ jobs:
       # 環境変数が必要になったら GitHub Secrets + env: を追加する。
       # ------------------------------------------------------------
       - name: Build
+        if: steps.filter.outputs.frontend_changes == 'true'
         run: npm run build --workspace=frontend
