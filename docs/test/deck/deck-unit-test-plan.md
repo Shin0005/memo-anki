@@ -37,6 +37,6 @@
 |                | バリデーション         | [cite_start]`name`が空文字(`NotBlank`)の場合、400エラーがトリガーされること   | 代表例のみ確認       |
 | **getDecks**   | 正常系: 引数伝播       | [cite_start]デコレータから取得した`userId`が正しくServiceへ渡されること       | 繋ぎ込み確認         |
 |                | 正常系: マッピング     | 取得した配列の全要素が`DeckResponse`のインスタンスであること                  | 複数データ変換の確認 |
-| **updateDeck** | バリデーション         | [cite_start]`deckId`が非数字や20桁超の場合、400エラーとなること               | BigInt境界値         |
-|                | 正常系: 引数伝播       | [cite_start]`userId`, `UpdateDeckRequest`の内容がServiceへ渡されること        | I/F整合性            |
-| **deleteDeck** | 正常系: 完了レスポンス | [cite_start]成功時にStatus 204 (No Content) を返すこと                        | REST準拠確認         |
+| **updateDeck** | バリデーション         | [cite_start]`name`が空文字(`NotBlank`)の場合、400エラーがトリガーされること   | 代表例のみ確認       |
+|                | 正常系: 引数伝播       | [cite_start]`userId`, `deckId`(Param), `UpdateDeckRequest`の内容がServiceへ渡されること | I/F整合性            |
+| **deleteDeck** | 正常系: 完了レスポンス | [cite_start]成功時にStatus 204 (No Content) を返すこと、`deckId`(Param)がServiceへ渡されること | REST準拠確認         |

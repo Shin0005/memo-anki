@@ -12,7 +12,6 @@ import { DeckResponse } from './dto/deck.response';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { CreateDeckRequest } from './dto/create-deck.request';
 import { UpdateDeckRequest } from './dto/update-deck.request';
-import { RequiredDeckIdRequest } from './dto/required-deckid.request';
 
 describe('DeckController', () => {
   let controller: DeckController;
@@ -118,29 +117,29 @@ describe('DeckController', () => {
 
   // --- updateDeck ---
   describe('updateDeck', () => {
-    it('正常系: 引数伝播 - userId, UpdateDeckRequestの内容がServiceへ渡されること', async () => {
-      // 試験項目: userId, UpdateDeckRequestの内容がServiceへ渡されること
-      const dto: UpdateDeckRequest = { deckId: '1', name: 'Updated Name' };
+    it('正常系: 引数伝播 - userId, deckId, UpdateDeckRequestの内容がServiceへ渡されること', async () => {
+      // 試験項目: userId, deckId, UpdateDeckRequestの内容がServiceへ渡されること
+      const deckId = '1';
+      const dto: UpdateDeckRequest = { name: 'Updated Name' };
       serviceMock.updateDeck.mockResolvedValue({
         ...mockDeckData,
         name: dto.name,
       } as any);
 
-      await controller.updateDeck(userId, dto);
+      await controller.updateDeck(userId, deckId, dto);
 
       const lastCall = serviceMock.updateDeck.mock.lastCall;
       if (!lastCall) throw new Error('Service was not called');
 
       expect(lastCall[0]).toBe(userId);
-      expect(lastCall[1].deckId).toBe(dto.deckId);
-      expect(lastCall[1].name).toBe(dto.name);
+      expect(lastCall[1]).toBe(deckId);
+      expect(lastCall[2].name).toBe(dto.name);
     });
 
-    it('バリデーション: deckIdが非数字や20桁超の場合、400エラーとなること', async () => {
-      // 試験項目: deckIdが非数字や20桁超の場合、400エラーとなること (BigInt境界値)
+    it('バリデーション: nameが空文字(NotBlank)の場合、400エラーがトリガーされること', async () => {
+      // 試験項目: nameが空文字(NotBlank)の場合、400エラーがトリガーされること
       const invalidDto = new UpdateDeckRequest();
-      invalidDto.deckId = '123456789012345678901'; // 21桁
-      invalidDto.name = 'Valid Name';
+      invalidDto.name = '';
 
       const metadata: ArgumentMetadata = {
         type: 'body',
@@ -158,14 +157,14 @@ describe('DeckController', () => {
   describe('deleteDeck', () => {
     it('正常系: 完了レスポンス - 成功時にStatus 204 (No Content) を返すこと', async () => {
       // 試験項目: 成功時にStatus 204 (No Content) を返すこと
-      const dto: RequiredDeckIdRequest = { deckId: '1' };
+      const deckId = '1';
       serviceMock.deleteDeck.mockResolvedValue(undefined as unknown as void);
 
-      const result = await controller.deleteDeck(userId, dto);
+      const result = await controller.deleteDeck(userId, deckId);
 
       // コントローラメソッドの戻り値がvoidであることを確認
       expect(result).toBeUndefined();
-      expect(serviceMock.deleteDeck).toHaveBeenCalledWith(userId, dto);
+      expect(serviceMock.deleteDeck).toHaveBeenCalledWith(userId, deckId);
     });
   });
 });
