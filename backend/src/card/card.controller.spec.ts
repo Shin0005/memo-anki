@@ -12,7 +12,8 @@ import { CardResponse } from './dto/card.response';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { CreateCardRequest } from './dto/create-card.request';
 import { UpdateCardRequest } from './dto/update-card.request';
-import { RequiredCardIdRequest } from './dto/required-cardid.request';
+import { ParseBigIntIdPipe } from '../common/pipes/parse-bigint-id.pipe';
+import { InvalidIdFormatException } from '../common/exceptions/application.exceptions';
 import { Card } from '@prisma/client';
 
 describe('CardController', () => {
@@ -136,12 +137,40 @@ describe('CardController', () => {
     });
   });
 
+  // --- ParseBigIntIdPipe ---
+  describe('ParseBigIntIdPipe', () => {
+    const pipe = new ParseBigIntIdPipe();
+
+    it('正常系: 1〜19桁の数字文字列はそのまま通過すること', () => {
+      // [試験項目: 正常値通過]
+      expect(pipe.transform('1')).toBe('1');
+      expect(pipe.transform('9999999999999999999')).toBe('9999999999999999999'); // 19桁
+    });
+
+    it('バリデーション: 非数字文字列の場合、InvalidIdFormatException が飛ぶこと', () => {
+      // [試験項目: 非数字]
+      expect(() => pipe.transform('abc')).toThrow(InvalidIdFormatException);
+      expect(() => pipe.transform('1a2')).toThrow(InvalidIdFormatException);
+    });
+
+    it('バリデーション: 20桁以上の場合、InvalidIdFormatException が飛ぶこと', () => {
+      // [試験項目: BigInt境界値]
+      expect(() => pipe.transform('12345678901234567890')).toThrow(
+        InvalidIdFormatException,
+      ); // 20桁
+    });
+
+    it('バリデーション: 空文字の場合、InvalidIdFormatException が飛ぶこと', () => {
+      // [試験項目: 空文字]
+      expect(() => pipe.transform('')).toThrow(InvalidIdFormatException);
+    });
+  });
+
   // --- updateCard ---
   describe('updateCard', () => {
-    it('正常系: 変換確認 - 文字列の cardId が BigInt に変換され Service へ渡されること', async () => {
+    it('正常系: 変換確認 - パスパラメータの cardId が Service へ渡されること', async () => {
       // [試験項目: 変換確認]
       const request: UpdateCardRequest = {
-        cardId: '1',
         name: 'Updated Name',
         content: 'new content',
         question: undefined,
@@ -149,30 +178,14 @@ describe('CardController', () => {
       };
       serviceMock.updateCard.mockResolvedValue(mockCardData);
 
-      await controller.updateCard(userId, request);
+      await controller.updateCard(userId, '1', request);
 
       expect(serviceMock.updateCard).toHaveBeenCalledWith(
+        '1',
         expect.objectContaining({
-          cardId: 1n,
+          name: 'Updated Name',
         }),
       );
-    });
-
-    it('バリデーション: cardId が非数字や20桁超の場合、400エラーとなること', async () => {
-      // [試験項目: BigInt境界値]
-      const invalidRequest = new UpdateCardRequest();
-      invalidRequest.cardId = '123456789012345678901'; // 21桁
-      invalidRequest.name = 'Valid Name';
-
-      const metadata: ArgumentMetadata = {
-        type: 'body',
-        metatype: UpdateCardRequest,
-        data: '',
-      };
-
-      await expect(
-        targetPipe.transform(invalidRequest, metadata),
-      ).rejects.toThrow(BadRequestException);
     });
   });
 
@@ -183,13 +196,10 @@ describe('CardController', () => {
       // NestJSの@HttpCode(204)はメタデータとして付与されるため、
       // 実際のエンドポイント呼び出し（E2E）で検証するのが一般的ですが、
       // ここではメソッドが正常に完了することを確認します。
-      const request: RequiredCardIdRequest = { cardId: '1' };
       serviceMock.deleteCard.mockResolvedValue(undefined);
 
-      await expect(
-        controller.deleteCard(userId, request),
-      ).resolves.not.toThrow();
-      expect(serviceMock.deleteCard).toHaveBeenCalledWith(userId, 1n);
+      await expect(controller.deleteCard(userId, '1')).resolves.not.toThrow();
+      expect(serviceMock.deleteCard).toHaveBeenCalledWith(userId, '1');
     });
   });
 });

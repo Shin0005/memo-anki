@@ -182,10 +182,9 @@ describe('Card (e2e)', () => {
       });
 
       await request(app.getHttpServer())
-        .put('/card')
+        .put(`/card/${card.id.toString()}`)
         .set('Authorization', `Bearer ${userAToken}`)
         .send({
-          cardId: card.id.toString(),
           name: 'New Name',
           content: 'New Content',
           question: 'Hacker question',
@@ -212,10 +211,9 @@ describe('Card (e2e)', () => {
       });
 
       await request(app.getHttpServer())
-        .put('/card')
+        .put(`/card/${card.id.toString()}`)
         .set('Authorization', `Bearer ${userAToken}`)
         .send({
-          cardId: card.id.toString(),
           name: 'Updated Quiz',
           content: 'Should be ignored',
           question: 'New Q',
@@ -235,9 +233,8 @@ describe('Card (e2e)', () => {
       });
 
       await request(app.getHttpServer())
-        .delete('/card')
+        .delete(`/card/${card.id.toString()}`)
         .set('Authorization', `Bearer ${userAToken}`)
-        .send({ cardId: card.id.toString() })
         .expect(204);
 
       // DBから対象レコードが削除されていることの検証
@@ -276,9 +273,9 @@ describe('Card (e2e)', () => {
       });
 
       await request(app.getHttpServer())
-        .put('/card')
+        .put(`/card/${cardB.id.toString()}`)
         .set('Authorization', `Bearer ${userAToken}`)
-        .send({ cardId: cardB.id.toString(), name: 'Hacked' })
+        .send({ name: 'Hacked' })
         .expect(404);
     });
 
@@ -287,12 +284,29 @@ describe('Card (e2e)', () => {
       await request(app.getHttpServer()).get('/card').expect(401);
     });
 
-    it('バリデーション: 不正なパラメータ (400)', async () => {
-      // [試験項目: バリデーション代表例]
+    it('バリデーション: 不正なボディパラメータ (400)', async () => {
+      // [試験項目: ボディバリデーション代表例]
       await request(app.getHttpServer())
         .post('/card')
         .set('Authorization', `Bearer ${userAToken}`)
         .send({ deckId: 'abc', name: '', type: 99 }) // 全て不正
+        .expect(400);
+    });
+
+    it('バリデーション: PUT時に非数字のパスパラメータ (400)', async () => {
+      // [試験項目: パスパラメータバリデーション (PUT)]
+      await request(app.getHttpServer())
+        .put('/card/abc')
+        .set('Authorization', `Bearer ${userAToken}`)
+        .send({ name: 'Test' })
+        .expect(400);
+    });
+
+    it('バリデーション: DELETE時に非数字のパスパラメータ (400)', async () => {
+      // [試験項目: パスパラメータバリデーション (DELETE)]
+      await request(app.getHttpServer())
+        .delete('/card/abc')
+        .set('Authorization', `Bearer ${userAToken}`)
         .expect(400);
     });
   });
