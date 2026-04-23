@@ -11,6 +11,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiParam, ApiResponse } from '@nestjs/swagger';
+import { ParseBigIntIdPipe } from '../common/pipes/parse-bigint-id.pipe';
 import { CardService, CreateCardDto, UpdateCardDto } from './card.service';
 import { CreateCardRequest } from './dto/create-card.request';
 import { JwtAuthGuard } from '../auth/jwt.guard';
@@ -60,7 +61,7 @@ export class CardController {
   @ApiResponse({ status: 200, type: CardResponse })
   async updateCard(
     @GetUserId() userId: string,
-    @Param('cardId') cardId: string,
+    @Param('cardId', ParseBigIntIdPipe) cardId: string,
     @Body() request: UpdateCardRequest,
   ) {
     const updateCardDto: UpdateCardDto = {
@@ -85,7 +86,7 @@ export class CardController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteCard(
     @GetUserId() userId: string,
-    @Param('cardId') cardId: string,
+    @Param('cardId', ParseBigIntIdPipe) cardId: string,
   ) {
     await this.cardService.deleteCard(userId, cardId);
   }

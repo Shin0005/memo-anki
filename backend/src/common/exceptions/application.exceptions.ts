@@ -20,8 +20,11 @@ export class ValidationFailedException extends ApplicationException {
   }
 }
 
-export class IsNotNumberException extends ApplicationException {
-  constructor(deckId: string) {
-    super(` DeckId: ${deckId} is not a Number.`, HttpStatus.BAD_REQUEST);
+export class InvalidIdFormatException extends ApplicationException {
+  constructor(id: string) {
+    super(
+      `Id: ${id} is not a valid format (must be 1-19 digit numeric string).`,
+      HttpStatus.BAD_REQUEST,
+    );
   }
 }
