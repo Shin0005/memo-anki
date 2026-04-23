@@ -11,7 +11,6 @@ import {
 } from '../common/exceptions/domain.exceptions'; // プロジェクトの例外クラスを想定
 import { CreateDeckRequest } from './dto/create-deck.request';
 import { UpdateDeckRequest } from './dto/update-deck.request';
-import { RequiredDeckIdRequest } from './dto/required-deckid.request';
 
 describe('DeckService', () => {
   let service: DeckService;
@@ -116,7 +115,8 @@ describe('DeckService', () => {
 
   // --- 3. updateDeck ---
   describe('updateDeck', () => {
-    const updateDto: UpdateDeckRequest = { deckId: '1', name: 'Updated Name' };
+    const deckId = '1';
+    const updateDto: UpdateDeckRequest = { name: 'Updated Name' };
 
     it('正常系: nameが未変更の場合、重複チェック(findByDeckName)が呼ばれないこと', async () => {
       const sameNameDto = { ...updateDto, name: mockDeck.name };
@@ -125,7 +125,7 @@ describe('DeckService', () => {
       prismaMock.deck.findFirst.mockResolvedValue(mockDeck);
       prismaMock.deck.updateMany.mockResolvedValue({ count: 1 });
 
-      await service.updateDeck(userId, sameNameDto);
+      await service.updateDeck(userId, deckId, sameNameDto);
 
       // findFirst自体はID検索で呼ばれるため、
       // 「name（重複チェック）を条件に含むfindFirst」が呼ばれていないことを検証する
@@ -147,7 +147,7 @@ describe('DeckService', () => {
         name: updateDto.name,
       });
 
-      await service.updateDeck(userId, updateDto);
+      await service.updateDeck(userId, deckId, updateDto);
 
       expect(prismaMock.deck.findFirst).toHaveBeenCalled();
       expect(prismaMock.deck.updateMany).toHaveBeenCalled();
@@ -159,9 +159,9 @@ describe('DeckService', () => {
         new DeckNotFoundException('Not Found'),
       );
 
-      await expect(service.updateDeck(userId, updateDto)).rejects.toThrow(
-        DeckNotFoundException,
-      );
+      await expect(
+        service.updateDeck(userId, deckId, updateDto),
+      ).rejects.toThrow(DeckNotFoundException);
     });
 
     it('異常系: 名前重複時にAlreadyExistExが飛ぶこと', async () => {
@@ -172,40 +172,40 @@ describe('DeckService', () => {
         id: BigInt(2),
       }); // 他のDeckがその名を使用中
 
-      await expect(service.updateDeck(userId, updateDto)).rejects.toThrow(
-        DecknameAlreadyExistException,
-      );
+      await expect(
+        service.updateDeck(userId, deckId, updateDto),
+      ).rejects.toThrow(DecknameAlreadyExistException);
     });
 
     it('異常系: updateManyの戻り値countが0の場合、DeckNotFoundExceptionが飛ぶこと', async () => {
       // 試験項目: updateManyの戻り値countが0の場合、DeckNotFoundExceptionが飛ぶこと
-      const updateDto: UpdateDeckRequest = { deckId: '1', name: 'New Name' };
+      const updateDto: UpdateDeckRequest = { name: 'New Name' };
 
       // 存在確認はパスするが、更新実行時に何らかの理由（他者による削除等）で対象がなくなるケース
       prismaMock.deck.findFirst.mockResolvedValue(mockDeck);
       prismaMock.deck.findFirst.mockResolvedValue(null);
       prismaMock.deck.updateMany.mockResolvedValue({ count: 0 }); // 更新失敗
 
-      await expect(service.updateDeck(userId, updateDto)).rejects.toThrow(
-        DeckNotFoundException,
-      );
+      await expect(
+        service.updateDeck(userId, deckId, updateDto),
+      ).rejects.toThrow(DeckNotFoundException);
     });
   });
 
   // --- 4. deleteDeck ---
   describe('deleteDeck', () => {
-    const deleteDto: RequiredDeckIdRequest = { deckId: '1' };
+    const deckId = '1';
 
     it('正常系: 正しいdeckIdでdeleteManyが呼ばれること', async () => {
       // 試験項目: 正しいdeckIdでdeleteManyが呼ばれること
       prismaMock.deck.findFirst.mockResolvedValue(mockDeck);
       prismaMock.deck.deleteMany.mockResolvedValue({ count: 1 });
 
-      await service.deleteDeck(userId, deleteDto);
+      await service.deleteDeck(userId, deckId);
 
       expect(prismaMock.deck.deleteMany).toHaveBeenCalledWith({
         where: {
-          id: BigInt(deleteDto.deckId),
+          id: BigInt(deckId),
           userId,
         },
       });
@@ -215,7 +215,7 @@ describe('DeckService', () => {
       // Prismaがエラーを投げるのではなく、null（見つからない）を返すようにする
       prismaMock.deck.findFirst.mockResolvedValue(null);
 
-      await expect(service.deleteDeck(userId, deleteDto)).rejects.toThrow(
+      await expect(service.deleteDeck(userId, deckId)).rejects.toThrow(
         DeckNotFoundException,
       );
     });

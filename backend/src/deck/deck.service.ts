@@ -7,7 +7,6 @@ import {
   DecknameAlreadyExistException,
   DeckNotFoundException,
 } from '../common/exceptions/domain.exceptions';
-import { RequiredDeckIdRequest } from './dto/required-deckid.request';
 
 // 将来的にserviceの引数をtype or interfaceに変更する可能性がある
 // このmodule以外、特にnotion連携機能で使う可能性がある。
@@ -80,11 +79,11 @@ export class DeckService {
     });
   }
 
-  async updateDeck(userId: string, request: UpdateDeckRequest) {
-    const deck = await this.findByDeckId(userId, request.deckId);
+  async updateDeck(userId: string, deckId: string, request: UpdateDeckRequest) {
+    const deck = await this.findByDeckId(userId, deckId);
     // idが存在しないとき
     if (!deck) {
-      throw new DeckNotFoundException(request.deckId);
+      throw new DeckNotFoundException(deckId);
       // nameが編集されていないなら通す。違う名前なら検索する
     } else if (deck.name !== request.name) {
       if (await this.findByDeckName(userId, request.name))
@@ -97,7 +96,7 @@ export class DeckService {
     };
 
     const result = await this.prismaService.deck.updateMany({
-      where: { userId: deck.userId, id: BigInt(request.deckId) },
+      where: { userId: deck.userId, id: BigInt(deckId) },
       data: deckInput,
     });
 
@@ -108,12 +107,12 @@ export class DeckService {
     const updatedDeck = await this.findByDeckId(userId, String(deck.id));
     return updatedDeck!;
   }
-  async deleteDeck(userId: string, request: RequiredDeckIdRequest) {
-    if (!(await this.findByDeckId(userId, request.deckId)))
-      throw new DeckNotFoundException(request.deckId);
+  async deleteDeck(userId: string, deckId: string) {
+    if (!(await this.findByDeckId(userId, deckId)))
+      throw new DeckNotFoundException(deckId);
 
     await this.prismaService.deck.deleteMany({
-      where: { userId: userId, id: BigInt(request.deckId) },
+      where: { userId: userId, id: BigInt(deckId) },
     });
   }
 }

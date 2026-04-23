@@ -16,21 +16,9 @@ on:
     branches:
       - '**' # すべてのブランチを対象
       - '!docs/**' # docs/ で始まるブランチは除外
-    paths:
-      - 'backend/**'
-      - 'shared/**'
-      - 'package.json'
-      - 'package-lock.json'
-      - 'docker-compose.yml'
   pull_request:
     branches:
       - main
-    paths:
-      - 'backend/**'
-      - 'shared/**'
-      - 'package.json'
-      - 'package-lock.json'
-      - 'docker-compose.yml'
 
 jobs:
   # ============================================================
@@ -43,6 +31,21 @@ jobs:
       - uses: actions/checkout@v4
 
       # ------------------------------------------------------------
+      # 変更パスの検知 (CIをスキップせずSuccessとして扱うための処理)
+      # ------------------------------------------------------------
+      - name: Check paths
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend_changes:
+              - 'backend/**'
+              - 'shared/**'
+              - 'package.json'
+              - 'package-lock.json'
+              - 'docker-compose.yml'
+
+      # ------------------------------------------------------------
       # Node.jsセットアップ + キャッシュ設定
       #
       # cache: 'npm' の理由
@@ -52,6 +55,7 @@ jobs:
       # キーにするため、lock fileが変わらない限りキャッシュが有効になる。
       # ------------------------------------------------------------
       - name: Setup Node.js
+        if: steps.filter.outputs.backend_changes == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -67,6 +71,7 @@ jobs:
       # npm workspacesのため、ルートで一度実行すれば全workspaceがインストールされる。
       # ------------------------------------------------------------
       - name: Install dependencies
+        if: steps.filter.outputs.backend_changes == 'true'
         run: npm ci
 
       # ------------------------------------------------------------
@@ -79,6 +84,7 @@ jobs:
       # OpenAPI生成より前に実行する必要がある。
       # ------------------------------------------------------------
       - name: Generate Prisma Client
+        if: steps.filter.outputs.backend_changes == 'true'
         run: npx prisma generate
         working-directory: backend
         env:
@@ -92,6 +98,7 @@ jobs:
       # 出力先は shared/openapi.json。
       # ------------------------------------------------------------
       - name: Generate OpenAPI spec
+        if: steps.filter.outputs.backend_changes == 'true'
         run: npm run generate:openapi --workspace=backend
         env:
           DATABASE_URL: 'postgresql://dummy:dummy@localhost:5432/dummy'
@@ -104,6 +111,7 @@ jobs:
       # この後の shared ビルドおよび backend ビルドで必要になる。
       # ------------------------------------------------------------
       - name: Generate shared types
+        if: steps.filter.outputs.backend_changes == 'true'
         run: npm run generate --workspace=@memo-anki/shared
 
       # ------------------------------------------------------------
@@ -113,6 +121,7 @@ jobs:
       # dist/ が存在しないと型解決・ビルドが失敗する。
       # ------------------------------------------------------------
       - name: Build shared package
+        if: steps.filter.outputs.backend_changes == 'true'
         run: npm run build --workspace=@memo-anki/shared
 
       # ------------------------------------------------------------
@@ -124,6 +133,7 @@ jobs:
       # --check はフォーマット違反があれば終了コード1で失敗する
       # ------------------------------------------------------------
       - name: Format check
+        if: steps.filter.outputs.backend_changes == 'true'
         run: npx prettier --check "src/**/*.ts" "test/**/*.ts"
         working-directory: backend
 
@@ -131,6 +141,7 @@ jobs:
       # ESLintチェック
       # ------------------------------------------------------------
       - name: Lint
+        if: steps.filter.outputs.backend_changes == 'true'
         run: npm run lint --workspace=backend
 
       # ------------------------------------------------------------
@@ -141,6 +152,7 @@ jobs:
       # NestJSのnest buildはtscをラップしているため型チェックも行われる。
       # ------------------------------------------------------------
       - name: Build
+        if: steps.filter.outputs.backend_changes == 'true'
         run: npm run build --workspace=backend
 
       # ------------------------------------------------------------
@@ -151,4 +163,5 @@ jobs:
       # テストが増えるにつれてこのオプションを外す。 -> 外した。
       # ------------------------------------------------------------
       - name: Test
+        if: steps.filter.outputs.backend_changes == 'true'
         run: npm test --workspace=backend
