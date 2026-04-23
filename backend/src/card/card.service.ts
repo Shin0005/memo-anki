@@ -25,7 +25,6 @@ export type CreateCardDto = {
 };
 
 export type UpdateCardDto = {
-  cardId: bigint;
   userId: string;
   name: string;
   content: string | null;
@@ -94,14 +93,14 @@ export class CardService {
     return await this.iCardRepository.findCards(userId);
   }
 
-  async updateCard(dto: UpdateCardDto) {
+  async updateCard(cardId: string, dto: UpdateCardDto) {
     // id存在チェックとname重複チェックを一つにまとめる
     // ここで対象のcardを特定。以降他人のcardを触る心配はない。
-    const card = await this.getCardById(dto.userId, dto.cardId);
+    const card = await this.getCardById(dto.userId, BigInt(cardId));
 
     // idが存在しないとき
     if (!card) {
-      throw new CardNotFoundException(String(dto.cardId));
+      throw new CardNotFoundException(cardId);
       // nameが編集されていないなら通す。違う名前なら検索する
     } else if (card.name !== dto.name) {
       if (await this.getCardByName(dto.userId, dto.name))
@@ -125,9 +124,9 @@ export class CardService {
     );
   }
 
-  async deleteCard(userId: string, cardId: bigint) {
-    if (!(await this.getCardById(userId, cardId)))
-      throw new CardNotFoundException(String(cardId));
+  async deleteCard(userId: string, cardId: string) {
+    if (!(await this.getCardById(userId, BigInt(cardId))))
+      throw new CardNotFoundException(cardId);
 
     await this.iCardRepository.deleteCard(userId, BigInt(cardId));
   }

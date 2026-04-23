@@ -1,15 +1,10 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNumberString, IsOptional, IsString, Length } from 'class-validator';
+import { IsOptional, IsString, Length } from 'class-validator';
 import { NotBlank } from '../../common/decorators/not-blank.decorator';
 
 // typeとdeckIdは変更させない
+// cardIdはURLのパスパラメータから受け取るのでボディに含めない
 export class UpdateCardRequest {
-  @ApiProperty({ example: '1', description: 'bigint ID of the card' })
-  @NotBlank()
-  @IsNumberString()
-  @Length(1, 19)
-  cardId: string;
-
   @ApiProperty({ example: 'Updated Card Name', maxLength: 50 })
   @NotBlank()
   @Length(1, 50)

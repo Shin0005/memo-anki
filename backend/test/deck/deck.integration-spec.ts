@@ -111,9 +111,9 @@ describe('DeckController (E2E)', () => {
       });
 
       await request(app.getHttpServer())
-        .put('/deck') // Controller定義に合わせてPut
+        .put(`/deck/${target.id.toString()}`)
         .set('Authorization', `Bearer ${tokenA}`)
-        .send({ deckId: target.id.toString(), name: 'After' })
+        .send({ name: 'After' })
         .expect(HttpStatus.OK);
 
       const updated = await prisma.deck.findUnique({
@@ -128,9 +128,8 @@ describe('DeckController (E2E)', () => {
       });
 
       await request(app.getHttpServer())
-        .delete('/deck')
+        .delete(`/deck/${deck.id.toString()}`)
         .set('Authorization', `Bearer ${tokenA}`)
-        .send({ deckId: deck.id.toString() })
         .expect(HttpStatus.NO_CONTENT);
 
       const deleted = await prisma.deck.findUnique({ where: { id: deck.id } });
@@ -171,9 +170,9 @@ describe('DeckController (E2E)', () => {
       });
 
       await request(app.getHttpServer())
-        .put('/deck')
+        .put(`/deck/${otherDeck.id.toString()}`)
         .set('Authorization', `Bearer ${tokenA}`)
-        .send({ deckId: otherDeck.id.toString(), name: 'Hack' })
+        .send({ name: 'Hack' })
         .expect(HttpStatus.NOT_FOUND);
     });
 
@@ -183,10 +182,26 @@ describe('DeckController (E2E)', () => {
       });
 
       await request(app.getHttpServer())
-        .delete('/deck')
+        .delete(`/deck/${otherDeck.id.toString()}`)
         .set('Authorization', `Bearer ${tokenA}`)
-        .send({ deckId: otherDeck.id.toString() })
         .expect(HttpStatus.NOT_FOUND);
+    });
+
+    it('バリデーション: PUT時に非数字のパスパラメータ (400)', async () => {
+      // [試験項目: パスパラメータバリデーション (PUT)]
+      await request(app.getHttpServer())
+        .put('/deck/abc')
+        .set('Authorization', `Bearer ${tokenA}`)
+        .send({ name: 'Test' })
+        .expect(HttpStatus.BAD_REQUEST);
+    });
+
+    it('バリデーション: DELETE時に非数字のパスパラメータ (400)', async () => {
+      // [試験項目: パスパラメータバリデーション (DELETE)]
+      await request(app.getHttpServer())
+        .delete('/deck/abc')
+        .set('Authorization', `Bearer ${tokenA}`)
+        .expect(HttpStatus.BAD_REQUEST);
     });
   });
 });

@@ -5,10 +5,13 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Param,
   Post,
   Put,
   UseGuards,
 } from '@nestjs/common';
+import { ApiParam, ApiResponse } from '@nestjs/swagger';
+import { ParseBigIntIdPipe } from '../common/pipes/parse-bigint-id.pipe';
 import { CardService, CreateCardDto, UpdateCardDto } from './card.service';
 import { CreateCardRequest } from './dto/create-card.request';
 import { JwtAuthGuard } from '../auth/jwt.guard';
@@ -16,7 +19,6 @@ import { GetUserId } from '../common/decorators/get-userid.decorator';
 import { CardResponse } from './dto/card.response';
 import { UpdateCardRequest } from './dto/update-card.request';
 import { Card } from '@prisma/client';
-import { RequiredCardIdRequest } from './dto/required-cardid.request';
 
 @Controller('card')
 export class CardController {
@@ -50,13 +52,19 @@ export class CardController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @Put()
+  @Put(':cardId')
+  @ApiParam({
+    name: 'cardId',
+    example: '1',
+    description: 'bigint ID of the card',
+  })
+  @ApiResponse({ status: 200, type: CardResponse })
   async updateCard(
     @GetUserId() userId: string,
+    @Param('cardId', ParseBigIntIdPipe) cardId: string,
     @Body() request: UpdateCardRequest,
   ) {
     const updateCardDto: UpdateCardDto = {
-      cardId: BigInt(request.cardId), // requestでエラーはじく
       userId,
       name: request.name,
       content: request.content ?? null,
@@ -64,17 +72,22 @@ export class CardController {
       answer: request.answer ?? null,
     };
 
-    const response = await this.cardService.updateCard(updateCardDto);
+    const response = await this.cardService.updateCard(cardId, updateCardDto);
     return new CardResponse(response);
   }
 
   @UseGuards(JwtAuthGuard)
-  @Delete()
+  @Delete(':cardId')
+  @ApiParam({
+    name: 'cardId',
+    example: '1',
+    description: 'bigint ID of the card',
+  })
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteCard(
     @GetUserId() userId: string,
-    @Body() request: RequiredCardIdRequest,
+    @Param('cardId', ParseBigIntIdPipe) cardId: string,
   ) {
-    await this.cardService.deleteCard(userId, BigInt(request.cardId));
+    await this.cardService.deleteCard(userId, cardId);
   }
 }

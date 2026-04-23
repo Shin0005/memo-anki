@@ -40,3 +40,5 @@
 | **updateDeck** | バリデーション         | [cite_start]`name`が空文字(`NotBlank`)の場合、400エラーがトリガーされること   | 代表例のみ確認       |
 |                | 正常系: 引数伝播       | [cite_start]`userId`, `deckId`(Param), `UpdateDeckRequest`の内容がServiceへ渡されること | I/F整合性            |
 | **deleteDeck** | 正常系: 完了レスポンス | [cite_start]成功時にStatus 204 (No Content) を返すこと、`deckId`(Param)がServiceへ渡されること | REST準拠確認         |
+
+> **補足**: `updateDeck`・`deleteDeck` のパスパラメータ `deckId` は `ParseBigIntIdPipe` で検証される。同パイプの単体試験項目は `CardController` 試験の `ParseBigIntIdPipe` セクションに集約済み（共通コンポーネントのため重複試験は不要）。

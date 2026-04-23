@@ -149,7 +149,6 @@ describe('CardService', () => {
 
   describe('updateCard', () => {
     const updateDto: UpdateCardDto = {
-      cardId: 1n,
       userId,
       name: 'Updated Name',
       content: 'new content',
@@ -162,7 +161,7 @@ describe('CardService', () => {
       cardRepoMock.findByCardId.mockResolvedValue(mockCard); // 既存名: 'Test Card'
       cardRepoMock.updateCard.mockResolvedValue(mockCard);
 
-      await service.updateCard({ ...updateDto, name: 'Test Card' });
+      await service.updateCard('1', { ...updateDto, name: 'Test Card' });
 
       expect(cardRepoMock.findByCardname).not.toHaveBeenCalled();
     });
@@ -175,7 +174,7 @@ describe('CardService', () => {
       });
       cardRepoMock.updateCard.mockResolvedValue(mockCard);
 
-      await service.updateCard(updateDto);
+      await service.updateCard('1', updateDto);
 
       expect(cardRepoMock.updateCard).toHaveBeenCalledWith(
         userId,
@@ -191,7 +190,7 @@ describe('CardService', () => {
     it('異常系: カードが存在しない場合に例外が飛ぶこと', async () => {
       // [試験項目: カード不在]
       cardRepoMock.findByCardId.mockResolvedValue(null);
-      await expect(service.updateCard(updateDto)).rejects.toThrow(
+      await expect(service.updateCard('1', updateDto)).rejects.toThrow(
         CardNotFoundException,
       );
     });
@@ -201,7 +200,7 @@ describe('CardService', () => {
       cardRepoMock.findByCardId.mockResolvedValue(mockCard);
       cardRepoMock.findByCardname.mockResolvedValue({ id: 2n } as any); // 自分以外のカードがヒット
 
-      await expect(service.updateCard(updateDto)).rejects.toThrow(
+      await expect(service.updateCard('1', updateDto)).rejects.toThrow(
         CardnameAlreadyExistException,
       );
     });
@@ -211,14 +210,14 @@ describe('CardService', () => {
     it('正常系: 削除が成功すること', async () => {
       // [試験項目: 削除成功]
       cardRepoMock.findByCardId.mockResolvedValue(mockCard);
-      await service.deleteCard(userId, 1n);
+      await service.deleteCard(userId, '1');
       expect(cardRepoMock.deleteCard).toHaveBeenCalledWith(userId, 1n);
     });
 
     it('異常系: 存在しないIDの場合に例外が飛ぶこと', async () => {
       // [試験項目: 存在しないID]
       cardRepoMock.findByCardId.mockResolvedValue(null);
-      await expect(service.deleteCard(userId, 1n)).rejects.toThrow(
+      await expect(service.deleteCard(userId, '1')).rejects.toThrow(
         CardNotFoundException,
       );
     });
