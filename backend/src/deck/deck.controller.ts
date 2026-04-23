@@ -11,6 +11,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiParam, ApiResponse } from '@nestjs/swagger';
+import { ParseBigIntIdPipe } from '../common/pipes/parse-bigint-id.pipe';
 import { DeckService } from './deck.service';
 import { CreateDeckRequest } from './dto/create-deck.request';
 import { JwtAuthGuard } from '../auth/jwt.guard';
@@ -51,7 +52,7 @@ export class DeckController {
   @ApiResponse({ status: 200, type: DeckResponse })
   async updateDeck(
     @GetUserId() userId: string,
-    @Param('deckId') deckId: string,
+    @Param('deckId', ParseBigIntIdPipe) deckId: string,
     @Body() request: UpdateDeckRequest,
   ) {
     const response = await this.deckService.updateDeck(userId, deckId, request);
@@ -68,7 +69,7 @@ export class DeckController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteDeck(
     @GetUserId() userId: string,
-    @Param('deckId') deckId: string,
+    @Param('deckId', ParseBigIntIdPipe) deckId: string,
   ) {
     await this.deckService.deleteDeck(userId, deckId);
   }
