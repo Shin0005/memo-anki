@@ -65,7 +65,7 @@ describe('CardService', () => {
 
   describe('createCard', () => {
     const createDto: CreateCardDto = {
-      deckId: 10n,
+      deckId: '10',
       userId,
       name: 'New Card',
       type: CardType.NOTE,

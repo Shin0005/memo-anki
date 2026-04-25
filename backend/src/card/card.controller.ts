@@ -31,7 +31,7 @@ export class CardController {
     @Body() request: CreateCardRequest,
   ) {
     const createCardDto: CreateCardDto = {
-      deckId: BigInt(request.deckId), // requestでエラーはじく
+      deckId: request.deckId, // requestでエラーはじく
       userId,
       name: request.name,
       type: request.type,

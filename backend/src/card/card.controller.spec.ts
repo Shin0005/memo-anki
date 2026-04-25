@@ -72,8 +72,8 @@ describe('CardController', () => {
 
   // --- createCard ---
   describe('createCard', () => {
-    it('正常系: 変換確認 - 文字列の deckId が BigInt に変換され Service へ渡されること', async () => {
-      // [試験項目: 変換確認]
+    it('正常系: deckId が string のまま Service へ渡されること', async () => {
+      // [試験項目: パススルー確認] BigInt 変換は Prisma 直前で行う方針
       const request: CreateCardRequest = {
         deckId: '10',
         name: 'New Card',
@@ -88,7 +88,7 @@ describe('CardController', () => {
 
       expect(serviceMock.createCard).toHaveBeenCalledWith(
         expect.objectContaining({
-          deckId: 10n,
+          deckId: '10',
         }),
       );
     });
@@ -147,10 +147,12 @@ describe('CardController', () => {
       expect(pipe.transform('9999999999999999999')).toBe('9999999999999999999'); // 19桁
     });
 
-    it('バリデーション: 非数字文字列の場合、InvalidIdFormatException が飛ぶこと', () => {
-      // [試験項目: 非数字]
+    it('バリデーション: 不正フォーマットの場合、InvalidIdFormatException が飛ぶこと', () => {
+      // [試験項目: 不正フォーマット] 非数字・0・先頭ゼロを排除
       expect(() => pipe.transform('abc')).toThrow(InvalidIdFormatException);
       expect(() => pipe.transform('1a2')).toThrow(InvalidIdFormatException);
+      expect(() => pipe.transform('0')).toThrow(InvalidIdFormatException);
+      expect(() => pipe.transform('01')).toThrow(InvalidIdFormatException);
     });
 
     it('バリデーション: 20桁以上の場合、InvalidIdFormatException が飛ぶこと', () => {
