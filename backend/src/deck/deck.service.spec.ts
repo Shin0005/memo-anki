@@ -95,7 +95,7 @@ describe('DeckService', () => {
       // 試験項目: 指定したdeckIdでfindFirst（findFirst）が呼ばれ、データが返ること
       prismaMock.deck.findFirst.mockResolvedValue(mockDeck);
 
-      const result = await service.getDeckById(userId, BigInt(deckId));
+      const result = await service.getDeckById(userId, deckId);
 
       expect(prismaMock.deck.findFirst).toHaveBeenCalledWith({
         where: { id: BigInt(deckId), userId },
@@ -107,7 +107,7 @@ describe('DeckService', () => {
       // 試験項目: 安全性の確認（例外を投げず、呼び出し元に判断を委ねる設計）
       prismaMock.deck.findFirst.mockResolvedValue(null);
 
-      const result = await service.getDeckById(userId, BigInt(deckId));
+      const result = await service.getDeckById(userId, deckId);
 
       expect(result).toBeNull();
     });

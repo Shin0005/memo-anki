@@ -73,9 +73,9 @@ export class DeckService {
   /**
    * deckIdでDeckを検索する。deckIdはバリデーションされている前提
    */
-  async getDeckById(userId: string, deckId: bigint) {
+  async getDeckById(userId: string, deckId: string) {
     return await this.prismaService.deck.findFirst({
-      where: { userId: userId, id: deckId },
+      where: { userId: userId, id: BigInt(deckId) },
     });
   }
 
