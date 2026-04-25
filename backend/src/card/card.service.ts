@@ -15,7 +15,7 @@ export enum CardType {
 }
 
 export type CreateCardDto = {
-  deckId: bigint;
+  deckId: string;
   userId: string;
   name: string;
   type: CardType;
@@ -69,7 +69,7 @@ export class CardService {
   async createCard(dto: CreateCardDto) {
     // 与えられたdeckidが存在するかまたはユーザのものかを検証
     const deck = await this.deckService.getDeckById(dto.userId, dto.deckId);
-    if (!deck) throw new DeckNotFoundException(String(dto.deckId));
+    if (!deck) throw new DeckNotFoundException(dto.deckId);
 
     // useridが同じかつcardの名前がすでにあるなら例外スロー
     if (await this.getCardByName(dto.userId, dto.name))
