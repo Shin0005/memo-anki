@@ -1,4 +1,5 @@
 'use client';
+import { Toaster } from 'sonner';
 
 // client側の全体の設定
 // ブラウザにあるuserContextのようなもの、client側なのでuseClientを明記
@@ -11,6 +12,9 @@ export default function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(() => new QueryClient());
 
   return (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    <QueryClientProvider client={queryClient}>
+      {children}
+      <Toaster position="bottom-right" />
+    </QueryClientProvider>
   );
 }
