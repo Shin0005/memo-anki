@@ -1,43 +1,46 @@
 'use client';
 
+import { useDeckMutations } from '@/features/deck/hooks/useDeckMutations';
 import DeckGrid from '../../../features/deck/components/DeckGrid';
-import { components } from '@memo-anki/shared';
-type Deck = components['schemas']['DeckResponse'];
+import { useDecks } from '@/features/deck/hooks/useDecks';
 
-// 仮のデッキデータ（後でAPI fetchに置き換える）
-const dummyDecks: Deck[] = [
-  {
-    id: '1',
-    name: '基本情報技術者試験',
-    description: '午前問題の確認用デッキ',
-    createdAt: '2025-05-01',
-  },
-  {
-    id: '2',
-    name: 'TypeScript / Next.js',
-    description: 'フロントエンド技術の復習',
-    createdAt: '2025-05-01',
-  },
-  { id: '3', name: '英単語', description: '', createdAt: '2025-05-01' },
-  { id: '4', name: '英単語1', description: '', createdAt: '2025-05-01' },
-  { id: '5', name: '英単語2', description: '', createdAt: '2025-05-01' },
-];
+import { components } from '@memo-anki/shared';
+import { useState } from 'react';
+import DeckCreateModal from '@/features/deck/components/DeckCreateModal';
+type CreateDeckRequest = components['schemas']['CreateDeckRequest'];
 
 export default function DeckListPage() {
-  // 各ボタンの動き。まずは console.log だけ。
-  // 後でAPI 呼び出しに置き換え。
-  const handleReview = (deckId: string) => {
-    console.log('復習:', deckId);
+  // tanstackquery
+  const { createDeck, deleteDeck } = useDeckMutations();
+  const { data: decks, isLoading, isError, error } = useDecks();
+
+  // useState
+  const [open, setOpen] = useState(false);
+  const openModal = () => {
+    setOpen(true);
   };
-  const handleEdit = (deckId: string) => {
-    console.log('編集:', deckId);
+  const closeModal = () => {
+    setOpen(false);
+  };
+  // CRUD(可読性のためにラップしている)
+  // 以下二つはのちにlinkをつける
+  const handleReview = () => {
+    console.log('復習:link');
+  };
+  const handleEdit = () => {
+    console.log('編集:link');
   };
   const handleDelete = (deckId: string) => {
-    console.log('削除:', deckId);
+    deleteDeck.mutate(deckId);
   };
-  const handleCreate = () => {
-    console.log('新規作成');
+  const handleCreate = (data: CreateDeckRequest) => {
+    createDeck.mutate(data);
   };
+
+  // 例外処理をしないとdataがdeck[]として型認識されない
+  if (isLoading) return <div>読み込み中...</div>;
+  if (isError)
+    return <div>エラーが発生しました: {(error as Error).message}</div>;
 
   return (
     <div className="flex-1 flex flex-col bg-white text-gray-800">
@@ -49,10 +52,10 @@ export default function DeckListPage() {
             {/* タイトル + ボタンを横並びに */}
             <div className="flex items-center justify-between mb-5">
               <h1 className="text-[20px] font-bold">デッキ一覧</h1>
-
-              {/* 将来的に分離？ */}
               <button
-                onClick={() => handleCreate()} //onclickには関数だけ
+                onClick={() => {
+                  openModal();
+                }}
                 className="mt-4 w-25 h-9 rounded-md bg-indigo-600 hover:bg-indigo-800 text-white text-sm font-semibold"
               >
                 ＋ 新規作成
@@ -62,13 +65,18 @@ export default function DeckListPage() {
             <div className="border-t-[1px] border-gray-200 mb-8"></div>
 
             <DeckGrid
-              decks={dummyDecks}
+              decks={decks ?? []}
               onReview={handleReview}
               onEdit={handleEdit}
               onDelete={handleDelete}
             />
           </section>
         </div>
+        <DeckCreateModal
+          open={open}
+          onClose={closeModal}
+          onCreate={handleCreate}
+        />
       </main>
     </div>
   );

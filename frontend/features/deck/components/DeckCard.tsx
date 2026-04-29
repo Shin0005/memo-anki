@@ -23,7 +23,7 @@ export default function DeckCard({
       </h2>
 
       {/* 説明文 */}
-      <p className="mt-2 text-[12.5px] text-gray-500 leading-snug">
+      <p className="mt-2 text-[12.5px] text-gray-500 leading-snug break-words">
         {deck.description || '説明はありません'}
       </p>
 
