@@ -3,6 +3,7 @@
 import { useDeckMutations } from '@/features/deck/hooks/useDeckMutations';
 import DeckGrid from '../../../features/deck/components/DeckGrid';
 import { useDecks } from '@/features/deck/hooks/useDecks';
+import { useRouter } from 'next/navigation';
 
 import { components } from '@memo-anki/shared';
 import { useState } from 'react';
@@ -10,25 +11,21 @@ import DeckCreateModal from '@/features/deck/components/DeckCreateModal';
 type CreateDeckRequest = components['schemas']['CreateDeckRequest'];
 
 export default function DeckListPage() {
+  //router
+  const router = useRouter();
   // tanstackquery
   const { createDeck, deleteDeck } = useDeckMutations();
   const { data: decks, isLoading, isError, error } = useDecks();
 
   // useState
   const [open, setOpen] = useState(false);
-  const openModal = () => {
-    setOpen(true);
-  };
-  const closeModal = () => {
-    setOpen(false);
-  };
+
   // CRUD(可読性のためにラップしている)
-  // 以下二つはのちにlinkをつける
   const handleReview = () => {
     console.log('復習:link');
   };
-  const handleEdit = () => {
-    console.log('編集:link');
+  const handleEdit = (deckId: string) => {
+    router.push(`/decks/${deckId}`);
   };
   const handleDelete = (deckId: string) => {
     deleteDeck.mutate(deckId);
@@ -54,7 +51,7 @@ export default function DeckListPage() {
               <h1 className="text-[20px] font-bold">デッキ一覧</h1>
               <button
                 onClick={() => {
-                  openModal();
+                  setOpen(true);
                 }}
                 className="mt-4 w-25 h-9 rounded-md bg-indigo-600 hover:bg-indigo-800 text-white text-sm font-semibold"
               >
@@ -74,7 +71,9 @@ export default function DeckListPage() {
         </div>
         <DeckCreateModal
           open={open}
-          onClose={closeModal}
+          onClose={() => {
+            setOpen(false);
+          }}
           onCreate={handleCreate}
         />
       </main>
