@@ -10,9 +10,9 @@ export class UpdateDeckRequest {
   @Length(1, 50)
   name: string;
 
-  @ApiPropertyOptional({ example: 'Updated description', maxLength: 5000 })
+  @ApiPropertyOptional({ example: 'Updated description', maxLength: 200 })
   @IsOptional()
   @IsString()
-  @Length(1, 5000)
+  @Length(1, 200)
   description?: string;
 }

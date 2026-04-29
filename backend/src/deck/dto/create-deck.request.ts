@@ -8,9 +8,9 @@ export class CreateDeckRequest {
   @Length(1, 50)
   name: string;
 
-  @ApiPropertyOptional({ example: 'A deck for studying', maxLength: 5000 })
+  @ApiPropertyOptional({ example: 'A deck for studying', maxLength: 200 })
   @IsOptional()
   @IsString()
-  @Length(1, 5000)
+  @Length(1, 200)
   description?: string;
 }
