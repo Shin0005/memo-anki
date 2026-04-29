@@ -94,7 +94,6 @@ export default function DeckCreateModal({ open, onClose, onCreate }: Props) {
             <textarea
               {...register('description', {
                 maxLength: {
-                  // バックエンドは5000文字だが、フロントに合わせる。
                   value: 200,
                   message: '200文字以内で入力してください',
                 },
