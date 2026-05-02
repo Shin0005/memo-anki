@@ -5,13 +5,13 @@ import Link from 'next/link';
 type CardListPageHeaderProps = {
   deckName: string;
   onEditDeck: () => void;
-  onAddCard: () => void;
+  onCreateCard: () => void;
 };
 
 export default function CardListPageHeader({
   deckName,
   onEditDeck,
-  onAddCard,
+  onCreateCard,
 }: CardListPageHeaderProps) {
   return (
     <div className="flex items-center justify-between px-8 py-5 border-b border-gray-200">
@@ -35,7 +35,7 @@ export default function CardListPageHeader({
         >
           デッキ編集
         </button>
-        <button onClick={onAddCard} className="btn btn-primary btn-sm">
+        <button onClick={onCreateCard} className="btn btn-primary btn-sm">
           ＋ カード追加
         </button>
       </div>
