@@ -2,96 +2,73 @@
 
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
-// import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { components } from '@memo-anki/shared';
-// import { useCards } from '@/features/card/hooks/useCards';
-// import { useCardMutations } from '@/features/card/hooks/useCardMutations';
+import { useCards } from '@/features/card/hooks/useCards';
+import { useCardMutations } from '@/features/card/hooks/useCardMutations';
 
 import CardListPageHeader from '@/features/card/components/CardListPageHeader';
 import CardList from '@/features/card/components/CardList';
 import CardCreateModal from '@/features/card/components/CardCreateModal';
 import CardEditModal from '@/features/card/components/CardEditModal';
 import DeckUpdateModal from '@/features/deck/components/DeckUpdateModal';
+import { useDeckMutations } from '@/features/deck/hooks/useDeckMutations';
 
 type Card = components['schemas']['CardResponse'];
+type CreateCardRequest = components['schemas']['CreateCardRequest'];
+type UpdateCardRequest = components['schemas']['UpdateCardRequest'];
 type Deck = components['schemas']['DeckResponse'];
-
-const MOCK_DECK: Deck = {
-  id: '714',
-  name: 'test2',
-  description: 'lalalaa',
-  createdAt: '2026-04-28T14:23:39.477Z',
-};
-
-const MOCK_CARDS = [
-  {
-    id: '221',
-    deckId: '714',
-    name: 'OSI参照モデル',
-    type: 0,
-    content:
-      'OSI参照モデルは7層構造。第1層:物理層、第2層:データリンク層、第3層:ネットワーク層、第4層:トランスポート層、第5層:セッション層、第6層:プレゼンテーション層、第7層:アプリケーション層。',
-    question: null,
-    answer: null,
-    updatedAt: '2026-04-30T00:00:00.000Z',
-  },
-  {
-    id: '222',
-    deckId: '714',
-    name: 'TCP/IPの特徴',
-    type: 0,
-    content:
-      'TCPはコネクション型プロトコル。信頼性のあるデータ転送を保証する。UDPはコネクションレス型で高速だが信頼性は低い。',
-    question: null,
-    answer: null,
-    updatedAt: '2026-04-30T00:00:00.000Z',
-  },
-  {
-    id: '223',
-    deckId: '714',
-    name: 'IPアドレスクラス',
-    type: 1,
-    content: null,
-    question: 'クラスAのIPアドレスの先頭ビットは何か？',
-    answer: '0。範囲は 0.0.0.0 〜 127.255.255.255。',
-    updatedAt: '2026-04-30T00:00:00.000Z',
-  },
-  {
-    id: '224',
-    deckId: '714',
-    name: 'サブネットマスク',
-    type: 1,
-    content: null,
-    question: '/24 のサブネットマスクを10進数で表せ',
-    answer: '255.255.255.0',
-    updatedAt: '2026-04-30T00:00:00.000Z',
-  },
-] as unknown as Card[];
+type UpdateDeckRequest = components['schemas']['UpdateDeckRequest'];
 
 export default function CardListPage() {
+  // urlからパスパラメータ取得
   const params = useParams<{ deckId: string }>();
   const deckId = params.deckId;
 
-  // const queryClient = useQueryClient();
-  // const deck = queryClient.getQueryData<Deck[]>(['decks'])?.find((d) => d.id === deckId);
-  // const { data: cards = [] } = useCards(deckId);
-  // const { deleteCard } = useCardMutations(deckId);
-  const deck = MOCK_DECK;
-  const cards = MOCK_CARDS;
+  // キャッシュからdeckを取得（fetchはせずキャッシュ更新を購読）
+  const queryClient = useQueryClient();
+  const { data: decks } = useQuery<Deck[]>({
+    queryKey: ['decks'],
+    queryFn: () =>
+      Promise.resolve(queryClient.getQueryData<Deck[]>(['decks']) ?? []),
+    enabled: false,
+  });
+  const deck = decks?.find((deck) => deck.id === deckId);
 
+  // tanstackquery
+  // cardsがundefinedのまま到達することはないが初期値[]で型を確定
+  const { data: cards = [], isLoading, isError, error } = useCards(deckId);
+  const { createCard, updateCard, deleteCard } = useCardMutations();
+  const { updateDeck } = useDeckMutations();
+
+  // useState（モーダル開閉）
   const [openEditDeck, setOpenEditDeck] = useState(false);
   const [openCreateCard, setOpenCreateCard] = useState(false);
   const [editingCard, setEditingCard] = useState<Card | null>(null);
 
+  // CRUD
+  //deck
+  const handleEditDeck = (deckId: string, body: UpdateDeckRequest) => {
+    updateDeck.mutate([deckId, body]);
+  };
+  //card
   const handleEditCard = (cardId: string) => {
     const target = cards.find((c) => c.id === cardId);
     if (target) setEditingCard(target);
   };
+  const handleCreateCard = (data: CreateCardRequest) => {
+    createCard.mutate(data);
+  };
+  const handleUpdateCard = (cardId: string, body: UpdateCardRequest) => {
+    updateCard.mutate([cardId, body]);
+  };
   const handleDeleteCard = (cardId: string) => {
-    // deleteCard(cardId);
-    console.log('[stub] deleteCard', cardId);
+    deleteCard.mutate(cardId);
   };
 
+  if (isLoading) return <div>読み込み中...</div>;
+  if (isError)
+    return <div>エラーが発生しました: {(error as Error).message}</div>;
   return (
     <main className="flex-1 bg-gray-50">
       <div className="max-w-[1536px] mx-auto px-6 py-8">
@@ -99,7 +76,7 @@ export default function CardListPage() {
           <CardListPageHeader
             deckName={deck?.name ?? ''}
             onEditDeck={() => setOpenEditDeck(true)}
-            onAddCard={() => setOpenCreateCard(true)}
+            onCreateCard={() => setOpenCreateCard(true)}
           />
           <CardList
             cards={cards}
@@ -115,19 +92,16 @@ export default function CardListPage() {
           open={openEditDeck}
           onClose={() => setOpenEditDeck(false)}
           initialDeck={deck}
-          onSave={(values) => {
-            console.log('[stub] updateDeck', deckId, values);
-          }}
+          onSave={handleEditDeck}
         />
       )}
 
       {/* カード作成モーダル */}
       <CardCreateModal
         open={openCreateCard}
+        deckId={deckId}
         onClose={() => setOpenCreateCard(false)}
-        onCreate={(values) => {
-          console.log('[stub] createCard', values);
-        }}
+        onCreate={handleCreateCard}
       />
 
       {/* カード編集モーダル */}
@@ -136,9 +110,7 @@ export default function CardListPage() {
           open={!!editingCard}
           onClose={() => setEditingCard(null)}
           initialCard={editingCard}
-          onSave={(values) => {
-            console.log('[stub] updateCard', editingCard.id, values);
-          }}
+          onSave={handleUpdateCard}
         />
       )}
     </main>

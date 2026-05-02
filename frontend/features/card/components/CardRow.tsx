@@ -48,13 +48,13 @@ export default function CardRow({ card, onEdit, onDelete }: CardRowProps) {
       <div className="flex gap-2 shrink-0">
         <button
           onClick={() => onEdit(card.id)}
-          className="btn btn-outline btn-sm"
+          className="btn btn-outline btn-sm flex-1 border-black text-black"
         >
           編集
         </button>
         <button
           onClick={() => onDelete(card.id)}
-          className="btn btn-outline btn-error btn-sm font-bold"
+          className="btn btn-outline btn-error btn-sm flex-1"
         >
           削除
         </button>

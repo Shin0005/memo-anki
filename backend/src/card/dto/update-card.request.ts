@@ -10,19 +10,31 @@ export class UpdateCardRequest {
   @Length(1, 50)
   name: string;
 
-  @ApiPropertyOptional({ example: 'Updated content', maxLength: 10000 })
+  @ApiPropertyOptional({
+    type: 'string',
+    example: 'Updated content',
+    maxLength: 10000,
+  })
   @IsOptional()
   @IsString()
   @Length(1, 10000)
   content: string | undefined;
 
-  @ApiPropertyOptional({ example: 'Updated question?', maxLength: 5000 })
+  @ApiPropertyOptional({
+    type: 'string',
+    example: 'Updated question?',
+    maxLength: 5000,
+  })
   @IsOptional()
   @IsString()
   @Length(1, 5000)
   question: string | undefined;
 
-  @ApiPropertyOptional({ example: 'Updated answer', maxLength: 5000 })
+  @ApiPropertyOptional({
+    type: 'string',
+    example: 'Updated answer',
+    maxLength: 5000,
+  })
   @IsOptional()
   @IsString()
   @Length(1, 5000)
