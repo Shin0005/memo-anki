@@ -1,0 +1,51 @@
+/*
+  ログイン画面で使う共通スタイル。
+  元 HTML の <style> ブロックをそのまま移植。
+  グローバル CSS（app/globals.css）に貼り付けるか、import して使ってください。
+
+  例 (app/login/page.tsx 等で):
+    import "@/features/auth/auth.css";
+*/
+
+:root {
+  --auth-primary: #4f2bdf;
+  --auth-primary-hover: #4320c7;
+}
+
+/* 入力フォーム */
+.auth-input {
+  width: 100%;
+  height: 40px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 0 12px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.12s;
+  background: #fff;
+}
+.auth-input:focus {
+  border-color: var(--auth-primary);
+  box-shadow: 0 0 0 3px rgba(79, 43, 223, 0.12);
+}
+
+/* プライマリボタン（フォーム送信用 / 横幅100%） */
+.auth-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  user-select: none;
+  background: var(--auth-primary);
+  color: #fff;
+  border: 1px solid var(--auth-primary);
+  height: 40px;
+  width: 100%;
+  font-size: 14px;
+  transition: background 0.12s ease;
+}
+.auth-btn-primary:hover {
+  background: var(--auth-primary-hover);
+}
