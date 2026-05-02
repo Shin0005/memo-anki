@@ -9,7 +9,6 @@ import { toast } from 'sonner';
 export type RegisterValues = {
   username: string;
   password: string;
-  passwordConfirm: string;
   email?: string;
 };
 
@@ -32,7 +31,6 @@ export default function RegisterForm({ onSubmit }: RegisterFormProps) {
     onSubmit({
       username,
       password,
-      passwordConfirm,
       email: email.trim() === '' ? undefined : email.trim(),
     });
   };
