@@ -7,6 +7,7 @@ import { HttpError } from '@/lib/api/httpError';
 
 type CreateDeckRequest = components['schemas']['CreateDeckRequest'];
 type UpdateDeckRequest = components['schemas']['UpdateDeckRequest'];
+type Deck = components['schemas']['DeckResponse'];
 
 export const useDeckMutations = () => {
   const queryClient = useQueryClient();
@@ -49,10 +50,16 @@ export const useDeckMutations = () => {
     onError: handleError,
   });
   /** デッキ更新 Fetch */
-  const updateDeck = useMutation({
-    mutationFn: ([deckId, body]: [string, UpdateDeckRequest]) =>
-      apiClient(`/deck/${deckId}`, 'PUT', body),
-    onSuccess: handleSuccess('更新'),
+  const updateDeck = useMutation<Deck, unknown, [string, UpdateDeckRequest]>({
+    mutationFn: ([deckId, body]) =>
+      apiClient(`/deck/${deckId}`, 'PUT', body) as Promise<Deck>,
+    onSuccess: (updated) => {
+      // ['decks'] キャッシュを直接書き換え、購読中のページを再レンダーさせる
+      queryClient.setQueryData<Deck[]>(['decks'], (old) =>
+        old?.map((d) => (d.id === updated.id ? updated : d)),
+      );
+      toast.success('更新に成功しました');
+    },
     onError: handleError,
   });
 
