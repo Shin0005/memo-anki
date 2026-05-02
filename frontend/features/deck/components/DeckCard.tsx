@@ -31,7 +31,7 @@ export default function DeckCard({
       {/* 復習ボタン */}
       <button
         onClick={() => onReview(deck.id)}
-        className="mt-4 w-full h-9 rounded-md bg-indigo-600 hover:bg-indigo-800 text-white text-sm font-semibold"
+        className="btn btn-primary w-full mt-4"
       >
         復習
       </button>
@@ -40,13 +40,13 @@ export default function DeckCard({
       <div className="mt-2 flex gap-2">
         <button
           onClick={() => onEdit(deck.id)}
-          className="flex-1 h-[30px] rounded-md border border-gray-300 bg-white text-gray-900 text-[12.5px] font-semibold hover:bg-gray-100"
+          className="btn btn-outline btn-sm flex-1"
         >
           編集
         </button>
         <button
           onClick={() => onDelete(deck.id)}
-          className="flex-1 h-[30px] rounded-md border border-red-500 bg-white text-red-500 text-[12.5px] font-bold hover:bg-red-50"
+          className="btn btn-outline btn-error btn-sm flex-1"
         >
           削除
         </button>
