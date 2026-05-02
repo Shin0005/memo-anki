@@ -4,11 +4,13 @@
 'use client';
 
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 export type RegisterValues = {
   username: string;
   password: string;
   passwordConfirm: string;
+  email?: string;
 };
 
 type RegisterFormProps = {
@@ -19,10 +21,20 @@ export default function RegisterForm({ onSubmit }: RegisterFormProps) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
+  const [email, setEmail] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit({ username, password, passwordConfirm });
+    if (password !== passwordConfirm) {
+      toast.error('パスワードが一致しません');
+      return;
+    }
+    onSubmit({
+      username,
+      password,
+      passwordConfirm,
+      email: email.trim() === '' ? undefined : email.trim(),
+    });
   };
 
   return (
@@ -50,6 +62,8 @@ export default function RegisterForm({ onSubmit }: RegisterFormProps) {
         <input
           type="password"
           required
+          minLength={8}
+          maxLength={64}
           autoComplete="new-password"
           placeholder="••••••••"
           value={password}
@@ -58,17 +72,33 @@ export default function RegisterForm({ onSubmit }: RegisterFormProps) {
         />
       </div>
 
-      <div className="mb-6">
+      <div className="mb-4">
         <label className="block text-[13px] font-semibold text-gray-700 mb-1.5">
           パスワード（確認）
         </label>
         <input
           type="password"
           required
+          minLength={8}
+          maxLength={64}
           autoComplete="new-password"
           placeholder="••••••••"
           value={passwordConfirm}
           onChange={(e) => setPasswordConfirm(e.target.value)}
+          className="auth-input"
+        />
+      </div>
+
+      <div className="mb-6">
+        <label className="block text-[13px] font-semibold text-gray-700 mb-1.5">
+          メールアドレス（任意）
+        </label>
+        <input
+          type="email"
+          autoComplete="email"
+          placeholder="example@mail.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
           className="auth-input"
         />
       </div>
