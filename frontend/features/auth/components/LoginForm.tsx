@@ -37,7 +37,7 @@ export default function LoginForm({ onSubmit }: LoginFormProps) {
           placeholder="username"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
-          className="auth-input"
+          className="input input-bordered w-full"
         />
       </div>
 
@@ -52,11 +52,11 @@ export default function LoginForm({ onSubmit }: LoginFormProps) {
           placeholder="••••••••"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="auth-input"
+          className="input input-bordered w-full"
         />
       </div>
 
-      <button type="submit" className="auth-btn-primary">
+      <button type="submit" className="btn btn-primary w-full">
         ログイン
       </button>
     </form>

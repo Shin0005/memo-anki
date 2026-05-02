@@ -51,7 +51,7 @@ export default function RegisterForm({ onSubmit }: RegisterFormProps) {
           placeholder="username"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
-          className="auth-input"
+          className="input input-bordered w-full"
         />
       </div>
 
@@ -68,7 +68,7 @@ export default function RegisterForm({ onSubmit }: RegisterFormProps) {
           placeholder="••••••••"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="auth-input"
+          className="input input-bordered w-full"
         />
       </div>
 
@@ -85,7 +85,7 @@ export default function RegisterForm({ onSubmit }: RegisterFormProps) {
           placeholder="••••••••"
           value={passwordConfirm}
           onChange={(e) => setPasswordConfirm(e.target.value)}
-          className="auth-input"
+          className="input input-bordered w-full"
         />
       </div>
 
@@ -99,11 +99,11 @@ export default function RegisterForm({ onSubmit }: RegisterFormProps) {
           placeholder="example@mail.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="auth-input"
+          className="input input-bordered w-full"
         />
       </div>
 
-      <button type="submit" className="auth-btn-primary">
+      <button type="submit" className="btn btn-primary w-full">
         登録する
       </button>
     </form>
