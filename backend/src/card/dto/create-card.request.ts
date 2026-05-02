@@ -26,19 +26,31 @@ export class CreateCardRequest {
   @IsIn([0, 1])
   type: number;
 
-  @ApiPropertyOptional({ example: 'Card content here', maxLength: 10000 })
+  @ApiPropertyOptional({
+    type: 'string',
+    example: 'Card content here',
+    maxLength: 10000,
+  })
   @IsOptional()
   @IsString()
   @Length(1, 10000)
   content: string | undefined;
 
-  @ApiPropertyOptional({ example: 'What is ...?', maxLength: 5000 })
+  @ApiPropertyOptional({
+    type: 'string',
+    example: 'What is ...?',
+    maxLength: 5000,
+  })
   @IsOptional()
   @IsString()
   @Length(1, 5000)
   question: string | undefined;
 
-  @ApiPropertyOptional({ example: 'The answer is ...', maxLength: 5000 })
+  @ApiPropertyOptional({
+    type: 'string',
+    example: 'The answer is ...',
+    maxLength: 5000,
+  })
   @IsOptional()
   @IsString()
   @Length(1, 5000)

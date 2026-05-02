@@ -14,13 +14,25 @@ export class CardResponse {
   @ApiProperty({ example: 0, description: '0=note, 1=quiz', enum: [0, 1] })
   type: number;
 
-  @ApiPropertyOptional({ example: 'Card content here', nullable: true })
+  @ApiPropertyOptional({
+    type: 'string',
+    example: 'Card content here',
+    nullable: true,
+  })
   content: string | null;
 
-  @ApiPropertyOptional({ example: 'What is ...?', nullable: true })
+  @ApiPropertyOptional({
+    type: 'string',
+    example: 'What is ...?',
+    nullable: true,
+  })
   question: string | null;
 
-  @ApiPropertyOptional({ example: 'The answer is ...', nullable: true })
+  @ApiPropertyOptional({
+    type: 'string',
+    example: 'The answer is ...',
+    nullable: true,
+  })
   answer: string | null;
 
   @ApiProperty({ example: '2024-01-01T00:00:00.000Z' })

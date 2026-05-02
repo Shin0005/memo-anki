@@ -6,7 +6,8 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 // fetchラッパー
 export async function apiClient(url: string, method: string, body?: unknown) {
   // のちにメモリ（zustand）から取得？
-  const accessToken = '';
+  const accessToken =
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2ZjVhMDhlMC1kNzJjLTRlZDUtYjQzOC0xYWZlMmUwOTlmZGMiLCJpYXQiOjE3Nzc3MTE0NjUsImV4cCI6MTc3NzcxMjM2NX0.WNMDROwVUszg4_gNec2tdFN5vhXaPImWhQvP5eT_BnQ';
 
   let res;
   try {
@@ -22,7 +23,13 @@ export async function apiClient(url: string, method: string, body?: unknown) {
   } catch {
     throw new Error('NetworkError');
   }
-  if (!res.ok) throw new HttpError(res.status, 'Fetch Failed');
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    const message = Array.isArray(body?.message)
+      ? body.message.join(', ')
+      : (body?.message ?? 'Fetch Failed');
+    throw new HttpError(res.status, message);
+  }
 
   if (res.status === HttpStatus.NO_CONTENT) return null;
   return res.json();
