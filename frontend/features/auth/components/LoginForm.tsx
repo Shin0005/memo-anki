@@ -4,34 +4,39 @@
 'use client';
 
 import { useState } from 'react';
-import type { LoginValues } from '../types/auth';
+
+export type LoginValues = {
+  username: string;
+  password: string;
+};
 
 type LoginFormProps = {
   onSubmit: (values: LoginValues) => void;
 };
 
 export default function LoginForm({ onSubmit }: LoginFormProps) {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit({ email, password });
+    onSubmit({ username, password });
   };
 
   return (
     <form onSubmit={handleSubmit}>
       <div className="mb-4">
         <label className="block text-[13px] font-semibold text-gray-700 mb-1.5">
-          メールアドレス
+          ユーザー名
         </label>
         <input
-          type="email"
+          type="text"
           required
-          autoComplete="email"
-          placeholder="example@mail.com"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          maxLength={30}
+          autoComplete="username"
+          placeholder="username"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
           className="auth-input"
         />
       </div>

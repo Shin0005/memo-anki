@@ -4,35 +4,41 @@
 'use client';
 
 import { useState } from 'react';
-import type { RegisterValues } from '../types/auth';
+
+export type RegisterValues = {
+  username: string;
+  password: string;
+  passwordConfirm: string;
+};
 
 type RegisterFormProps = {
   onSubmit: (values: RegisterValues) => void;
 };
 
 export default function RegisterForm({ onSubmit }: RegisterFormProps) {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit({ email, password, passwordConfirm });
+    onSubmit({ username, password, passwordConfirm });
   };
 
   return (
     <form onSubmit={handleSubmit}>
       <div className="mb-4">
         <label className="block text-[13px] font-semibold text-gray-700 mb-1.5">
-          メールアドレス
+          ユーザー名
         </label>
         <input
-          type="email"
+          type="text"
           required
-          autoComplete="email"
-          placeholder="example@mail.com"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          maxLength={30}
+          autoComplete="username"
+          placeholder="username"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
           className="auth-input"
         />
       </div>

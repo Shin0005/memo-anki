@@ -3,7 +3,8 @@
 
 'use client';
 
-import type { LoginValues, RegisterValues } from '../types/auth';
+import type { LoginValues } from '../components/LoginForm';
+import type { RegisterValues } from '../components/RegisterForm';
 
 export function useAuthMutations() {
   const login = async (values: LoginValues) => {
