@@ -11,7 +11,8 @@ type Props = {
   open: boolean;
   onClose: () => void;
   initialDeck: DeckResponse;
-  onSave: (values: UpdateDeckRequest) => void;
+  onSave: (deckId: string, body: UpdateDeckRequest) => void; //mutation
+  //deckId: string, body: UpdateDeckRequest
 };
 
 type FormValues = {
@@ -44,11 +45,8 @@ export default function DeckUpdateModal({
 
   if (!open) return null;
 
-  const onSubmit = (data: FormValues) => {
-    onSave({
-      name: data.name.trim(),
-      description: data.description.trim() || undefined,
-    });
+  const onSubmit = (formValues: FormValues) => {
+    onSave(initialDeck.id, formValues);
     onClose();
   };
 
