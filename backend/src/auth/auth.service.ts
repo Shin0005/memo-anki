@@ -144,6 +144,23 @@ export class AuthService {
   }
 
   /**
+   * ログアウト
+   * RTをデコードしてuserIdを取得し、DBのRT情報をクリアする
+   * RTが期限切れ・不正でも例外を握り潰す（Cookieクリアは呼び出し元で行う）
+   */
+  async logout(refreshToken: string) {
+    try {
+      const payload =
+        await this.jwtService.verifyAsync<JwtPayload>(refreshToken);
+      if (payload?.sub) {
+        await this.userService.clearRefreshToken(payload.sub);
+      }
+    } catch {
+      // 期限切れや不正RTでもCookieは消すため握り潰す
+    }
+  }
+
+  /**
    * リフレッシュ
    * 送られたrefreshTokenが認証された場合にtokenの組を返す
    * @param userID

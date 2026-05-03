@@ -8,6 +8,7 @@ import {
   Req,
   UnauthorizedException,
 } from '@nestjs/common';
+import { ApiResponse } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { AuthResponse } from './dto/auth.response';
 import { RefreshResponse } from './dto/refresh.response';
@@ -21,6 +22,7 @@ export class AuthController {
   constructor(private authService: AuthService) {}
 
   @Post('register')
+  @ApiResponse({ status: 201, type: AuthResponse })
   async register(
     @Body() request: RegisterRequest,
     @Res({ passthrough: true }) res: express.Response,
@@ -39,6 +41,7 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @ApiResponse({ status: 200, type: AuthResponse })
   async login(
     @Body() request: LoginRequest,
     @Res({ passthrough: true }) res: express.Response,
@@ -55,8 +58,21 @@ export class AuthController {
     );
   }
 
+  @Post('logout')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async logout(
+    @Req() req: express.Request,
+    @Res({ passthrough: true }) res: express.Response,
+  ) {
+    const refreshToken = req.cookies['refresh_token'] as string | undefined;
+    // RTがあればDBのRT情報をクリア（期限切れ・不正でもService側で握り潰す）
+    if (refreshToken) await this.authService.logout(refreshToken);
+    res.clearCookie('refresh_token', { path: '/' });
+  }
+
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
+  @ApiResponse({ status: 200, type: RefreshResponse })
   async refresh(
     @Req() req: express.Request,
     @Res({ passthrough: true }) res: express.Response,
