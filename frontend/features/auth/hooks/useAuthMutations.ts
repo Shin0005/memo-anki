@@ -1,27 +1,74 @@
-// ログイン / 新規登録の API 呼び出し口。
-// 中身はプレースホルダなので、TanStack Query や fetch ラッパに差し替えてください。
-
 'use client';
 
-import type { LoginValues } from '../components/LoginForm';
-import type { RegisterValues } from '../components/RegisterForm';
+import { useMutation } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
+import { components } from '@memo-anki/shared';
+import { apiClient } from '@/lib/api/client';
+import { HttpError } from '@/lib/api/httpError';
+import { HttpStatus } from '@/lib/api/statusCodes';
+import { useAuthStore } from '@/lib/store/useAuthStore';
 
-export function useAuthMutations() {
-  const login = async (values: LoginValues) => {
-    // TODO: POST /auth/login
-    //   const res = await apiClient.post("/auth/login", values);
-    //   tokenStore.set(res.token);
-    //   router.push("/decks");
-    console.log('[useAuthMutations] login', values);
+type LoginRequest = components['schemas']['LoginRequest'];
+type RegisterRequest = components['schemas']['RegisterRequest'];
+type AuthResponse = components['schemas']['AuthResponse'];
+
+export const useAuthMutations = () => {
+  const router = useRouter();
+  const setAccessToken = useAuthStore((s) => s.setAccessToken);
+
+  const handleSuccess = (res: AuthResponse) => {
+    setAccessToken(res.accessToken);
+    router.push('/decks');
   };
 
-  const register = async (values: RegisterValues) => {
-    // TODO: POST /auth/register
-    //   バリデーション: values.password === values.passwordConfirm
-    //   成功時は login と同様にトークン保存 → /decks へ遷移、
-    //   もしくは「ログインタブへ切り替え」のどちらかをプロダクト方針で選択。
-    console.log('[useAuthMutations] register', values);
+  const handleLoginError = (err: unknown) => {
+    if (err instanceof HttpError) {
+      switch (err.statusCode) {
+        case HttpStatus.UNAUTHORIZED:
+          toast.error('ユーザー名またはパスワードが間違っています');
+          break;
+        case HttpStatus.BAD_REQUEST:
+          toast.error('正しい形式で入力してください');
+          break;
+        default:
+          toast.error('サーバーエラーが発生しました');
+      }
+    } else {
+      toast.error('ネットワークエラーが発生しました');
+    }
   };
+
+  const handleRegisterError = (err: unknown) => {
+    if (err instanceof HttpError) {
+      switch (err.statusCode) {
+        case HttpStatus.CONFLICT:
+          toast.error('このユーザー名は既に使用されています');
+          break;
+        case HttpStatus.BAD_REQUEST:
+          toast.error('正しい形式で入力してください');
+          break;
+        default:
+          toast.error('サーバーエラーが発生しました');
+      }
+    } else {
+      toast.error('ネットワークエラーが発生しました');
+    }
+  };
+
+  const login = useMutation({
+    mutationFn: (data: LoginRequest) =>
+      apiClient('/auth/login', 'POST', data) as Promise<AuthResponse>,
+    onSuccess: handleSuccess,
+    onError: handleLoginError,
+  });
+
+  const register = useMutation({
+    mutationFn: (data: RegisterRequest) =>
+      apiClient('/auth/register', 'POST', data) as Promise<AuthResponse>,
+    onSuccess: handleSuccess,
+    onError: handleRegisterError,
+  });
 
   return { login, register };
-}
+};

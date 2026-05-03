@@ -28,9 +28,9 @@ export default function AuthCard() {
 
         <div className="px-8 py-7">
           {tab === 'login' ? (
-            <LoginForm onSubmit={login} />
+            <LoginForm onSubmit={(values) => login.mutate(values)} />
           ) : (
-            <RegisterForm onSubmit={register} />
+            <RegisterForm onSubmit={(values) => register.mutate(values)} />
           )}
         </div>
       </div>
