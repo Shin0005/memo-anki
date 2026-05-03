@@ -123,6 +123,15 @@ jobs:
         run: npm run lint --workspace=frontend
 
       # ------------------------------------------------------------
+      # Vitestテスト
+      #
+      # 副作用ロジックと条件分岐の多いフォームに絞った最小限のテストを実行する。
+      # ------------------------------------------------------------
+      - name: Test
+        if: steps.filter.outputs.frontend_changes == 'true'
+        run: npm test --workspace=frontend
+
+      # ------------------------------------------------------------
       # Next.jsビルド確認
       #
       # Next.js 15はビルド時にTypeScript型チェック・ページの
