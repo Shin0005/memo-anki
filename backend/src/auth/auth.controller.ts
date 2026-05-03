@@ -60,7 +60,13 @@ export class AuthController {
 
   @Post('logout')
   @HttpCode(HttpStatus.NO_CONTENT)
-  logout(@Res({ passthrough: true }) res: express.Response) {
+  async logout(
+    @Req() req: express.Request,
+    @Res({ passthrough: true }) res: express.Response,
+  ) {
+    const refreshToken = req.cookies['refresh_token'] as string | undefined;
+    // RTがあればDBのRT情報をクリア（期限切れ・不正でもService側で握り潰す）
+    if (refreshToken) await this.authService.logout(refreshToken);
     res.clearCookie('refresh_token', { path: '/' });
   }
 

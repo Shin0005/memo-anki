@@ -59,4 +59,11 @@ export class UserService {
       data: input,
     });
   }
+
+  async clearRefreshToken(userId: string) {
+    return await this.prismaService.user.update({
+      where: { id: userId },
+      data: { refreshTokenHash: null, refreshTokenExpiresAt: null },
+    });
+  }
 }
