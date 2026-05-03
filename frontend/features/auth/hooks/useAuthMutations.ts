@@ -15,10 +15,11 @@ type AuthResponse = components['schemas']['AuthResponse'];
 
 export const useAuthMutations = () => {
   const router = useRouter();
-  const setAccessToken = useAuthStore((s) => s.setAccessToken);
+  // zustandからsetAuth()を取り出す
+  const setAuth = useAuthStore((s) => s.setAuth);
 
   const handleSuccess = (res: AuthResponse) => {
-    setAccessToken(res.accessToken);
+    setAuth(res.accessToken, res.username); //zustandにセット
     router.push('/decks');
   };
 

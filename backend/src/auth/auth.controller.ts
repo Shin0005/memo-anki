@@ -58,6 +58,12 @@ export class AuthController {
     );
   }
 
+  @Post('logout')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  logout(@Res({ passthrough: true }) res: express.Response) {
+    res.clearCookie('refresh_token', { path: '/' });
+  }
+
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   @ApiResponse({ status: 200, type: RefreshResponse })
