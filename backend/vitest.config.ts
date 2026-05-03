@@ -1,8 +1,13 @@
 import { defineConfig } from 'vitest/config';
+import swc from 'unplugin-swc';
 
 export default defineConfig({
+  // NestJS の @Injectable() 等のデコレータは emitDecoratorMetadata が必要。
+  // esbuild（vitestのデフォルト）はこれを出力しないため、SWCでトランスパイルする。
+  // unplugin-swc は backend/package.json の devDependencies に含まれている。
+  plugins: [swc.vite({ module: { type: 'es6' } })],
   test: {
-    globals: true, // これを有効にすることで、Jestと同じ感覚でグローバルに関数を使ええる
+    globals: true,
     environment: 'node',
   },
 });
