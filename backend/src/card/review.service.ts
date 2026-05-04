@@ -4,7 +4,7 @@ import { ICardRepository } from './card.repository.interface';
 import { Inject, Injectable } from '@nestjs/common';
 import { DeckService } from '../deck/deck.service';
 import { sortReviewQueue } from './sort-review-queue';
-import { DeckNotFoundException } from 'src/common/exceptions/domain.exceptions';
+import { DeckNotFoundException } from '../common/exceptions/domain.exceptions';
 
 export type GetReviewCardDto = {
   deckId: string;

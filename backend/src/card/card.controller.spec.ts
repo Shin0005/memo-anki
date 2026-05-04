@@ -8,6 +8,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 
 import { CardController } from './card.controller';
 import { CardService } from './card.service';
+import { ReviewService } from './review.service';
 import { CardResponse } from './dto/card.response';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { CreateCardRequest } from './dto/create-card.request';
@@ -52,6 +53,10 @@ describe('CardController', () => {
         {
           provide: CardService,
           useValue: serviceMock,
+        },
+        {
+          provide: ReviewService,
+          useValue: mockDeep<ReviewService>(),
         },
       ],
     }).compile();
