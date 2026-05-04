@@ -14,6 +14,7 @@ export interface ICardRepository {
     cardId: bigint,
     data: Prisma.CardUncheckedUpdateInput,
   ): Promise<Card>;
+  findReviewCards(userId: string, deckId: bigint): Promise<Card[]>;
 }
 
 // DI用のトークン

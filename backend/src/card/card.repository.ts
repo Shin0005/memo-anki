@@ -75,4 +75,21 @@ export class CardRepository implements ICardRepository {
       where: { deck: { userId }, id: cardId },
     });
   }
+
+  async findReviewCards(userId: string, deckId: bigint): Promise<Card[]> {
+    const currentDate = new Date(); // 現在時刻
+    return await this.prismaService.card.findMany({
+      where: {
+        deck: { userId },
+        deckId: deckId,
+        nextReviewAt: {
+          lte: currentDate, // nextReviewAt <= currentDate
+        },
+      },
+      take: 10, // 別serviceから呼ばれるなら変数化も視野に。
+      orderBy: {
+        nextReviewAt: 'asc',
+      },
+    });
+  }
 }
