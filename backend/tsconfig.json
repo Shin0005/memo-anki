@@ -15,7 +15,7 @@
     "outDir": "./dist",
     "baseUrl": "./",
     "paths": {
-      "@memo-anki/shared": ["../shared/dist/index.d.ts"]
+      "@memo-anki/shared": ["../shared/dist/index"]
     },
     "incremental": true,
     "skipLibCheck": true,
