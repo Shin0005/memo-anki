@@ -2,12 +2,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { mockDeep, type DeepMockProxy } from 'vitest-mock-extended';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import {
-  CardService,
-  CardType,
-  CreateCardDto,
-  UpdateCardDto,
-} from './card.service';
+import { CardService, CreateCardDto, UpdateCardDto } from './card.service';
+import { CardType } from '@memo-anki/shared';
 import { ICardRepository } from './card.repository.interface';
 import { DeckService } from '../deck/deck.service';
 import { Card } from '@prisma/client';

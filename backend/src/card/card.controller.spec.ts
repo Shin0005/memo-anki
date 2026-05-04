@@ -15,6 +15,7 @@ import { UpdateCardRequest } from './dto/update-card.request';
 import { ParseBigIntIdPipe } from '../common/pipes/parse-bigint-id.pipe';
 import { InvalidIdFormatException } from '../common/exceptions/application.exceptions';
 import { Card } from '@prisma/client';
+import { CardType } from '@memo-anki/shared';
 
 describe('CardController', () => {
   let controller: CardController;
@@ -105,12 +106,12 @@ describe('CardController', () => {
       expect(result.id).toBe(mockCardData.id.toString());
     });
 
-    it('バリデーション: type に 0, 1 以外が指定された場合、400エラーとなること', async () => {
-      // [試験項目: 列挙型バリデーション]
+    it('バリデーション: type に CardType 以外の値が指定された場合、400エラーとなること', async () => {
+      // [試験項目: CardType enum バリデーション]
       const invalidRequest = new CreateCardRequest();
       invalidRequest.deckId = '10';
       invalidRequest.name = 'Test';
-      invalidRequest.type = 9; // 不正な値
+      invalidRequest.type = 9 as unknown as CardType; // 不正な値（型チェック迂回はテスト目的）
 
       const metadata: ArgumentMetadata = {
         type: 'body',

@@ -1,13 +1,13 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
-  IsIn,
-  IsNumber,
+  IsEnum,
   IsNumberString,
   IsOptional,
   IsString,
   Length,
 } from 'class-validator';
 import { NotBlank } from '../../common/decorators/not-blank.decorator';
+import { CardType } from '@memo-anki/shared';
 
 export class CreateCardRequest {
   @ApiProperty({ example: '1', description: 'bigint ID of the deck' })
@@ -21,10 +21,9 @@ export class CreateCardRequest {
   @Length(1, 50)
   name: string;
 
-  @ApiProperty({ example: 0, description: '0=note, 1=quiz', enum: [0, 1] })
-  @IsNumber()
-  @IsIn([0, 1])
-  type: number;
+  @ApiProperty({ enum: CardType, enumName: 'CardType', example: CardType.NOTE })
+  @IsEnum(CardType)
+  type: CardType;
 
   @ApiPropertyOptional({
     type: 'string',

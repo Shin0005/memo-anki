@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Card } from '@prisma/client';
+import { CardType } from '@memo-anki/shared';
 
 export class CardResponse {
   @ApiProperty({ example: '1' })
@@ -11,8 +12,8 @@ export class CardResponse {
   @ApiProperty({ example: 'My Card' })
   name: string;
 
-  @ApiProperty({ example: 0, description: '0=note, 1=quiz', enum: [0, 1] })
-  type: number;
+  @ApiProperty({ enum: CardType, enumName: 'CardType', example: CardType.NOTE })
+  type: CardType;
 
   @ApiPropertyOptional({
     type: 'string',

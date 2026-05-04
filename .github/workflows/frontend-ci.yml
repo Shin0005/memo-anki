@@ -79,6 +79,7 @@ jobs:
       # GENERATE_OPENAPI=true により PrismaService.$connect() をスキップし、
       # DBなしで NestJS をブートストラップして openapi.json を生成する。
       # 出力先は shared/openapi.json。
+      # ※ pregenerate:openapi (backend/package.json) で shared が事前 build される。
       # ------------------------------------------------------------
       - name: Generate OpenAPI spec
         if: steps.filter.outputs.frontend_changes == 'true'
