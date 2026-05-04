@@ -8,21 +8,27 @@ import {
   Param,
   Post,
   Put,
+  Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiParam, ApiResponse } from '@nestjs/swagger';
+import { ApiParam, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { ParseBigIntIdPipe } from '../common/pipes/parse-bigint-id.pipe';
 import { CardService, CreateCardDto, UpdateCardDto } from './card.service';
 import { CreateCardRequest } from './dto/create-card.request';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { GetUserId } from '../common/decorators/get-userid.decorator';
 import { CardResponse } from './dto/card.response';
+import { CardReviewResponse } from './dto/card-review.response';
 import { UpdateCardRequest } from './dto/update-card.request';
 import { Card } from '@prisma/client';
+import { ReviewService } from './review.service';
 
 @Controller('card')
 export class CardController {
-  constructor(private readonly cardService: CardService) {}
+  constructor(
+    private readonly cardService: CardService,
+    private readonly reviewService: ReviewService,
+  ) {}
 
   @UseGuards(JwtAuthGuard)
   @Post()
@@ -89,5 +95,23 @@ export class CardController {
     @Param('cardId', ParseBigIntIdPipe) cardId: string,
   ) {
     await this.cardService.deleteCard(userId, cardId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('review')
+  @ApiQuery({
+    name: 'deckId',
+    example: '1',
+    description: 'bigint ID of the deck',
+  })
+  async getReviewCards(
+    @GetUserId() userId: string,
+    @Query('deckId', ParseBigIntIdPipe) deckId: string,
+  ) {
+    const responses = await this.reviewService.findReviewCards({
+      deckId,
+      userId,
+    });
+    return responses.map((card) => new CardReviewResponse(card));
   }
 }
