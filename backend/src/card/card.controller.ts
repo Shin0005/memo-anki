@@ -20,8 +20,9 @@ import { GetUserId } from '../common/decorators/get-userid.decorator';
 import { CardResponse } from './dto/card.response';
 import { CardReviewResponse } from './dto/card-review.response';
 import { UpdateCardRequest } from './dto/update-card.request';
+import { ReviewCardRequest } from './dto/review-card.request';
 import { Card } from '@prisma/client';
-import { ReviewService } from './review.service';
+import { ReviewCardDto, ReviewService } from './review.service';
 
 @Controller('card')
 export class CardController {
@@ -97,6 +98,12 @@ export class CardController {
     await this.cardService.deleteCard(userId, cardId);
   }
 
+  /**
+   * 復習対象のキューを取得する
+   *
+   * 取得数はデフォルトで10件
+   * @returns ソートされたCard10件
+   */
   @UseGuards(JwtAuthGuard)
   @Get('review')
   @ApiQuery({
@@ -113,5 +120,31 @@ export class CardController {
       userId,
     });
     return responses.map((card) => new CardReviewResponse(card));
+  }
+
+  /** 採点を反映する */
+  @UseGuards(JwtAuthGuard)
+  @Post(':cardId/review')
+  @ApiParam({
+    name: 'cardId',
+    example: '1',
+    description: 'bigint ID of the card',
+  })
+  @ApiResponse({ status: 200, type: CardReviewResponse })
+  async reviewCard(
+    @GetUserId() userId: string,
+    @Param('cardId', ParseBigIntIdPipe) cardId: string,
+    @Body() request: ReviewCardRequest,
+  ) {
+    const reviewCardDto: ReviewCardDto = {
+      userId,
+      cardId,
+      rating: request.rating,
+      version: request.version,
+    };
+    const updated = await this.reviewService.reviewCard(reviewCardDto);
+
+    // 更新するだけなのでレスポンスいらないのでは？→いったん置いておく
+    return new CardReviewResponse(updated);
   }
 }
