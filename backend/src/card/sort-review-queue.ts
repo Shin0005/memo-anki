@@ -11,15 +11,19 @@ import _ from 'lodash';
  */
 export function sortReviewQueue(cards: Card[]) {
   // カード配列をQueueで分割
-  const newQueue = cards.filter(
-    (card: Card) => card.queue === (CardQueue.NEW as number),
-  );
-  const shortQueue = cards.filter(
-    (card: Card) => card.queue === (CardQueue.SHORT as number),
-  );
-  const longQueue = cards.filter(
-    (card: Card) => card.queue === (CardQueue.LONG as number),
-  );
+  // Prismaが生成するqueueはnumber型なので、enum型に明示変換してから比較する
+  const newQueue = cards.filter((card: Card) => {
+    const queue: CardQueue = card.queue;
+    return queue === CardQueue.NEW;
+  });
+  const shortQueue = cards.filter((card: Card) => {
+    const queue: CardQueue = card.queue;
+    return queue === CardQueue.SHORT;
+  });
+  const longQueue = cards.filter((card: Card) => {
+    const queue: CardQueue = card.queue;
+    return queue === CardQueue.LONG;
+  });
 
   // shortばかり前に来ないようにシャッフル
 
