@@ -76,6 +76,12 @@ export class CardRepository implements ICardRepository {
     });
   }
 
+  /**
+   * 復習対象のカードを取得する
+   *
+   * デフォルトの取得数は10件
+   * @returns nextReviewAtで昇順ソートされたCard10件
+   */
   async findReviewCards(userId: string, deckId: bigint): Promise<Card[]> {
     const currentDate = new Date(); // 現在時刻
     return await this.prismaService.card.findMany({
@@ -91,5 +97,38 @@ export class CardRepository implements ICardRepository {
         nextReviewAt: 'asc',
       },
     });
+  }
+
+  /**
+   * カードの状態更新
+   *
+   * versionによる複数ワーカー対策を行っている。
+   * 衝突した場合はserviceで例外を投げる仕様。
+   * @returns Card or null
+   */
+  async updateReviewWithVersion(
+    userId: string,
+    cardId: bigint,
+    version: number,
+    data: Prisma.CardUncheckedUpdateInput,
+  ): Promise<Card | null> {
+    const result = await this.prismaService.card.updateMany({
+      where: {
+        deck: { userId },
+        id: cardId,
+        version: version, // 楽観ロック
+      },
+      data: {
+        ...data,
+        version: { increment: 1 }, // 競合検知のため+1して登録
+      },
+    });
+
+    // update失敗時（競合時も含まれる）
+    if (result.count === 0) {
+      return null;
+    }
+    // 更新後のカードを再取得して返却
+    return await this.findByCardId(userId, cardId);
   }
 }
