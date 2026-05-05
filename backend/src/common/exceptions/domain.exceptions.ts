@@ -66,3 +66,10 @@ export class CardnameAlreadyExistException extends DomainException {
     super(`This Cardname: ${cardname} is already exist.`, HttpStatus.CONFLICT);
   }
 }
+
+// 楽観ロック競合：採点更新時にversionが一致しなかった場合に投げる
+export class CardVersionConflictException extends DomainException {
+  constructor(cardId: string) {
+    super(`CardId: ${cardId} version conflict.`, HttpStatus.CONFLICT);
+  }
+}
