@@ -8,11 +8,7 @@ import {
 
 import { Inject, Injectable } from '@nestjs/common';
 import { DeckService } from '../deck/deck.service';
-
-export enum CardType {
-  NOTE = 0,
-  QUIZ = 1,
-}
+import { CardType } from '@memo-anki/shared';
 
 export type CreateCardDto = {
   deckId: string;

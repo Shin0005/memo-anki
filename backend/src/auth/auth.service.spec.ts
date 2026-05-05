@@ -284,7 +284,7 @@ describe('AuthService', () => {
     it('正常系: リフレッシュ成功し新しいトークンが返ること', async () => {
       jwtServiceMock.verifyAsync.mockResolvedValue({
         sub: 'user-uuid-123',
-      } as any);
+      });
 
       userServiceMock.findById.mockResolvedValue({
         ...mockUser,
@@ -312,7 +312,7 @@ describe('AuthService', () => {
     });
 
     it('異常系: payloadにsubが無い', async () => {
-      jwtServiceMock.verifyAsync.mockResolvedValue({} as any);
+      jwtServiceMock.verifyAsync.mockResolvedValue({});
 
       await expect(service.refresh(refreshToken)).rejects.toThrow();
     });
@@ -320,7 +320,7 @@ describe('AuthService', () => {
     it('異常系: userが存在しない', async () => {
       jwtServiceMock.verifyAsync.mockResolvedValue({
         sub: 'user-uuid-123',
-      } as any);
+      });
 
       userServiceMock.findById.mockResolvedValue(null);
 
@@ -330,13 +330,13 @@ describe('AuthService', () => {
     it('異常系: RTが未設定', async () => {
       jwtServiceMock.verifyAsync.mockResolvedValue({
         sub: 'user-uuid-123',
-      } as any);
+      });
 
       userServiceMock.findById.mockResolvedValue({
         ...mockUser,
         refreshTokenHash: null,
         refreshTokenExpiresAt: null,
-      } as any);
+      });
 
       await expect(service.refresh(refreshToken)).rejects.toThrow();
     });
@@ -344,7 +344,7 @@ describe('AuthService', () => {
     it('異常系: RT不一致', async () => {
       jwtServiceMock.verifyAsync.mockResolvedValue({
         sub: 'user-uuid-123',
-      } as any);
+      });
 
       userServiceMock.findById.mockResolvedValue({
         ...mockUser,

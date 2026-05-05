@@ -9,12 +9,18 @@
       "types": "./dist/index.d.ts",
       "require": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./api": {
+      "types": "./dist/api.d.ts",
+      "require": "./dist/api.js",
+      "default": "./dist/api.js"
     }
   },
   "files": [
     "dist"
   ],
   "scripts": {
+    "prebuild": "[ -f src/api.ts ] || echo 'export {};' > src/api.ts",
     "build": "tsc",
     "dev": "tsc --watch",
     "type-check": "tsc --noEmit",
