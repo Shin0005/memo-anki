@@ -38,7 +38,7 @@ describe('DeckController', () => {
         {
           provide: DeckService,
           // 鉄則: 型安全にDIを行うためのキャスト
-          useValue: serviceMock as unknown as DeckService,
+          useValue: serviceMock,
         },
       ],
     }).compile();
@@ -158,7 +158,7 @@ describe('DeckController', () => {
     it('正常系: 完了レスポンス - 成功時にStatus 204 (No Content) を返すこと', async () => {
       // 試験項目: 成功時にStatus 204 (No Content) を返すこと
       const deckId = '1';
-      serviceMock.deleteDeck.mockResolvedValue(undefined as unknown as void);
+      serviceMock.deleteDeck.mockResolvedValue(undefined);
 
       const result = await controller.deleteDeck(userId, deckId);
 

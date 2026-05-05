@@ -40,7 +40,9 @@ export function applyRating(
   now: Date = new Date(), // テスト用
 ): ReviewUpdate {
   // キュータイプごとに異なる状態変化を設定
-  switch (card.queue as CardQueue) {
+  // Prismaが生成するqueueはnumber型なので、enum型に明示変換してswitchの安全性を保つ
+  const queue: CardQueue = card.queue;
+  switch (queue) {
     case CardQueue.NEW:
       return applyToNew(card, rating, now);
     case CardQueue.SHORT:
