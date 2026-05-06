@@ -41,43 +41,41 @@ export default function DeckListPage() {
     return <div>エラーが発生しました: {(error as Error).message}</div>;
 
   return (
-    <div className="flex-1 flex flex-col bg-white text-gray-800">
-      {/* メイン領域（薄いグレーの背景） */}
-      <main className="flex-1 bg-gray-50">
-        <div className="max-w-[1536px] mx-auto px-6 py-8">
-          {/* 白いパネルの中にタイトルとグリッドを置く */}
-          <section className="bg-white border border-gray-200 rounded-lg px-8 py-7">
-            {/* タイトル + ボタンを横並びに */}
-            <div className="flex items-center justify-between mb-5">
-              <h1 className="text-[20px] font-bold">デッキ一覧</h1>
-              <button
-                onClick={() => {
-                  setOpen(true);
-                }}
-                className="mt-4 w-25 h-9 rounded-md bg-indigo-600 hover:bg-indigo-800 text-white text-sm font-semibold"
-              >
-                ＋ 新規作成
-              </button>
-            </div>
+    // decks/layout.tsx の main(flex-1) に乗っかって残り空間を埋める。
+    <div className="flex-1 bg-gray-50 text-gray-800">
+      <div className="max-w-[1536px] mx-auto px-6 py-8">
+        {/* 白いパネルの中にタイトルとグリッドを置く */}
+        <section className="bg-white border border-gray-200 rounded-lg px-8 py-7">
+          {/* タイトル + ボタンを横並びに */}
+          <div className="flex items-center justify-between mb-5">
+            <h1 className="text-[20px] font-bold">デッキ一覧</h1>
+            <button
+              onClick={() => {
+                setOpen(true);
+              }}
+              className="mt-4 w-25 h-9 rounded-md bg-indigo-600 hover:bg-indigo-800 text-white text-sm font-semibold"
+            >
+              ＋ 新規作成
+            </button>
+          </div>
 
-            <div className="border-t-[1px] border-gray-200 mb-8"></div>
+          <div className="border-t-[1px] border-gray-200 mb-8"></div>
 
-            <DeckGrid
-              decks={decks ?? []}
-              onReview={handleReview}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-            />
-          </section>
-        </div>
-        <DeckCreateModal
-          open={open}
-          onClose={() => {
-            setOpen(false);
-          }}
-          onCreate={handleCreate}
-        />
-      </main>
+          <DeckGrid
+            decks={decks ?? []}
+            onReview={handleReview}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+          />
+        </section>
+      </div>
+      <DeckCreateModal
+        open={open}
+        onClose={() => {
+          setOpen(false);
+        }}
+        onCreate={handleCreate}
+      />
     </div>
   );
 }

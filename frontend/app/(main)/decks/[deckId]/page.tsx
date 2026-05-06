@@ -70,7 +70,8 @@ export default function CardListPage() {
   if (isError)
     return <div>エラーが発生しました: {(error as Error).message}</div>;
   return (
-    <main className="flex-1 bg-gray-50">
+    // decks/layout.tsx の main(flex-1) に乗っかって残り空間を埋める
+    <div className="flex-1 bg-gray-50 text-gray-800">
       <div className="max-w-[1536px] mx-auto px-6 py-8">
         <section className="bg-white border border-gray-200 rounded-lg overflow-hidden">
           <CardListPageHeader
@@ -113,6 +114,6 @@ export default function CardListPage() {
           onSave={handleUpdateCard}
         />
       )}
-    </main>
+    </div>
   );
 }
