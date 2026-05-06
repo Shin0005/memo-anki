@@ -9,7 +9,7 @@ import CardTypeBadge from '@/features/card/components/CardTypeBadge';
 import ReviewRatingButtons from './ReviewRatingButtons';
 
 type ReviewLayoutProps = {
-  deckId: number;
+  deckId: string;
   deckName: string;
   cardName: string;
   cardType: CardType;

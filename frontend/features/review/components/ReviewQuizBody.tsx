@@ -1,32 +1,27 @@
 'use client';
 
-import { useState } from 'react';
-
-// カード切り替え時のリセットは page 側で key={cardId} を渡すことで行う。
-// key が変わると React がコンポーネントを再マウントし、shown が自動で false に戻る。
+// カード切り替え時の shown リセットは page 側の onRating ハンドラで行う。
 type ReviewQuizBodyProps = {
   question: string;
   answer: string;
-  onAnswerShownChange: (shown: boolean) => void;
+  shown: boolean;
+  onAnswerShown: (shown: boolean) => void;
 };
 
 export default function ReviewQuizBody({
   question,
   answer,
-  onAnswerShownChange,
+  shown,
+  onAnswerShown,
 }: ReviewQuizBodyProps) {
-  const [shown, setShown] = useState(false);
-
   // 解答を表示し、親に通知する
   const handleShow = () => {
-    setShown(true);
-    onAnswerShownChange(true);
+    onAnswerShown(true);
   };
 
   // 解答を非表示にし、親に通知する
   const handleHide = () => {
-    setShown(false);
-    onAnswerShownChange(false);
+    onAnswerShown(false);
   };
 
   return (
@@ -47,7 +42,7 @@ export default function ReviewQuizBody({
             <button
               type="button"
               onClick={handleHide}
-              className="btn btn-outline btn-sm h-[42px] px-6 text-[14px] font-semibold"
+              className="btn text-black btn-outline btn-sm h-[42px] px-6 text-[14px] font-semibold"
             >
               解答を非表示
             </button>
@@ -58,7 +53,7 @@ export default function ReviewQuizBody({
           <button
             type="button"
             onClick={handleShow}
-            className="btn btn-outline h-[42px] px-6 text-[14px] font-semibold"
+            className="btn text-black btn-outline h-[42px] px-6 text-[14px] font-semibold"
           >
             解答を表示
           </button>
