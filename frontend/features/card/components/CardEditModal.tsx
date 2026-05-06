@@ -1,4 +1,7 @@
 'use client';
+// React Compiler が react-hook-form の register をメモ化して onChange が
+// 機能しなくなる問題の回避。このファイルだけ Compiler の最適化対象から外す。
+'use no memo';
 
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
