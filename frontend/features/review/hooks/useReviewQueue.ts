@@ -1,12 +1,5 @@
-// 復習キュー取得・採点送信のプレースホルダ Hook。
-// API 接続時にユーザー側で実装する想定。
-//
-// 使い方の例:
-//   const { current, total, index, rating, isLoading } = useReviewQueue(deckId);
-
 import { type components, ReviewRating } from '@memo-anki/shared';
 
-// CardResponse をこのhook内で使いやすい名前にする
 type Card = components['schemas']['CardResponse'];
 
 export type ReviewQueueState = {
@@ -25,10 +18,7 @@ export type ReviewQueueState = {
 };
 
 export function useReviewQueue(deckId: number): ReviewQueueState {
-  // TODO:
-  //  - GET /decks/:deckId/review でキュー取得
-  //  - POST /cards/:cardId/review { rating } で採点送信
-  //  - 採点完了時に内部 index を進め、最後まで行ったら finished = true
+  // 追加
   console.log('[stub] useReviewQueue', deckId);
   return {
     current: null,

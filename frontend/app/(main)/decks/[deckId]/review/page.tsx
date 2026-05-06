@@ -1,13 +1,3 @@
-// /decks/[deckId]/review = 復習画面。
-//
-// 役割:
-//   - useReviewQueue でカードキューを取得し、現在のカードを表示
-//   - カードの type に応じて NOTE / QUIZ の中身を出し分け
-//   - 評価ボタンを押すとキューを進める。完了時は完了画面へ遷移
-//
-// 外枠（パンくず・カード枠・評価ボタン）は ReviewLayout が共通で持つ。
-// type ごとの違いは body コンポーネントだけ。
-
 'use client';
 
 import { useState } from 'react';
@@ -20,16 +10,32 @@ import ReviewNoteBody from '@/features/review/components/ReviewNoteBody';
 import ReviewQuizBody from '@/features/review/components/ReviewQuizBody';
 import { useReviewQueue } from '@/features/review/hooks/useReviewQueue';
 import { buildCardDetail } from '@/features/card/utils/cardView';
+// import { useQuery, useQueryClient } from '@tanstack/react-query';
+// import { components } from '@memo-anki/shared';
+
+// type Deck = components['schemas']['DeckResponse'];
 
 export default function ReviewPage() {
+  const router = useRouter();
+
+  // urlからパスパラメータ取得
   const params = useParams<{ deckId: string }>();
   const deckId = Number(params.deckId);
-  const router = useRouter();
+
+  // // キャッシュからdeckを取得（fetchはせずキャッシュ更新を購読）
+  // const queryClient = useQueryClient();
+  // const { data: decks } = useQuery<Deck[]>({
+  //   queryKey: ['decks'],
+  //   queryFn: () =>
+  //     Promise.resolve(queryClient.getQueryData<Deck[]>(['decks']) ?? []),
+  //   enabled: false,
+  // });
+  // const deck = decks?.find((deck) => deck.id === deckId);
 
   const { current, finished, rating } = useReviewQueue(deckId);
 
   // デッキ名
-  const [deckName] = useState('基本情報技術者試験');
+  const [deckName] = useState('デッキ名');
 
   // QUIZ 中で「解答を表示済みか」を子から受け取り、
   // 評価ボタンの活性/非活性を切り替えるのに使う。
@@ -66,14 +72,17 @@ export default function ReviewPage() {
       onRating={rating}
       ratingDisabled={isQuiz && !answerShown}
     >
+      {/* children */}
       {isQuiz ? (
+        // key={current.id} でカード切り替え時にコンポーネントを再マウントし、shown をリセットする
         <ReviewQuizBody
-          cardId={current.id}
+          key={current.id}
           question={current.question ?? ''}
           answer={current.answer ?? ''}
           onAnswerShownChange={setAnswerShown}
         />
       ) : (
+        // ただcontentを表示するだけ
         <ReviewNoteBody content={current.content ?? ''} />
       )}
     </ReviewLayout>

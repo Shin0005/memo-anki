@@ -1,6 +1,3 @@
-// NOTE タイプの「中身」。
-// content をそのまま表示するだけ（解答の概念がない）。
-
 'use client';
 
 type ReviewNoteBodyProps = {
