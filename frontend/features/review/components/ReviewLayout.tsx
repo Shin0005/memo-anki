@@ -1,13 +1,3 @@
-// 復習画面の「外枠」を提供する共有レイアウト。
-//   - パンくず + タイトル
-//   - 大枠カード（左上：タイプバッジ + カード名）
-//   - children に NOTE / QUIZ それぞれの「中身（表示・回答表示）」を差し込む
-//   - フッターに評価ボタン4つ
-//   - 下部に「復習を中断して戻る」リンク
-//
-// NOTE / QUIZ で違うのは children の中身だけなので、
-// このレイアウトを共有して使い回す。
-
 'use client';
 
 import Link from 'next/link';
@@ -16,8 +6,7 @@ import type { ReactNode } from 'react';
 import { CardType, ReviewRating } from '@memo-anki/shared';
 
 import CardTypeBadge from '@/features/card/components/CardTypeBadge';
-import ReviewBreadcrumb from './ReviewBreadcrumb';
-import ReviewGradeButtons from './ReviewGradeButtons';
+import ReviewRatingButtons from './ReviewRatingButtons';
 
 type ReviewLayoutProps = {
   deckId: number;
@@ -40,9 +29,21 @@ export default function ReviewLayout({
   children,
 }: ReviewLayoutProps) {
   return (
-    <main className="flex-1 bg-gray-50">
+    <div className="flex-1 bg-gray-50">
       <div className="max-w-[860px] mx-auto px-6 py-8">
-        <ReviewBreadcrumb deckId={deckId} deckName={deckName} />
+        {/* パンくずリスト */}
+        <div className="mb-5">
+          <p className="text-[12px] text-gray-400 mb-0.5">
+            <Link href="/decks" className="hover:underline">
+              デッキ一覧
+            </Link>
+            <span className="mx-1">›</span>
+            <Link href={`/decks/${deckId}`} className="hover:underline">
+              {deckName}
+            </Link>
+          </p>
+          <h1 className="text-[20px] font-bold text-gray-900">復習中</h1>
+        </div>
 
         {/* 大枠：カード */}
         <section className="bg-white border border-gray-200 rounded-lg overflow-hidden">
@@ -56,25 +57,28 @@ export default function ReviewLayout({
             </div>
           </div>
 
-          {/* 中身（NOTE / QUIZ で差し替え） */}
+          {/* 中身（pageでNOTE/QUIZ切り替え） */}
           <div className="px-7 pb-6">{children}</div>
 
-          {/* フッター：評価ボタン */}
+          {/* 評価ボタン */}
           <div className="border-t border-gray-200 px-7 py-5">
-            <ReviewGradeButtons onRating={onRating} disabled={ratingDisabled} />
+            <ReviewRatingButtons
+              onRating={onRating}
+              disabled={ratingDisabled}
+            />
           </div>
         </section>
 
-        {/* 下部の補助操作 */}
+        {/* デッキ一覧へリンク */}
         <div className="mt-4">
           <Link
-            href={`/decks/${deckId}`}
+            href="/decks"
             className="text-[12.5px] text-gray-500 hover:text-gray-800 hover:underline"
           >
-            ← 復習を中断してカード一覧に戻る
+            ← 復習を中断してデッキ一覧に戻る
           </Link>
         </div>
       </div>
-    </main>
+    </div>
   );
 }
