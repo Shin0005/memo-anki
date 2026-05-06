@@ -22,8 +22,7 @@ export default function DeckListPage() {
 
   // CRUD(可読性のためにラップしている)
   const handleReview = (deckId: string) => {
-    // 一時的に配置
-    router.push(`/decks/${deckId}/review/complete`);
+    router.push(`/decks/${deckId}/review`);
   };
   const handleEdit = (deckId: string) => {
     router.push(`/decks/${deckId}`);
