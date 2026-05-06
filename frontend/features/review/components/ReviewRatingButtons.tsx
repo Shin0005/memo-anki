@@ -1,21 +1,17 @@
-// 評価ボタン4つ（Again / Hard / Good / Easy）。
-// DaisyUI の btn と semantic color を使用。
-// 押下時に親へ ReviewRating を返す。
-// QUIZ 画面では「解答表示前は無効化したい」ケースがあるため disabled も受ける。
-
 'use client';
 
 import { ReviewRating } from '@memo-anki/shared';
 
-type ReviewGradeButtonsProps = {
+// disabledはquizの回答表示前に設定する
+type ReviewRatingButtonsProps = {
   onRating: (rating: ReviewRating) => void;
   disabled?: boolean;
 };
 
-export default function ReviewGradeButtons({
+export default function ReviewRatingButtons({
   onRating,
   disabled = false,
-}: ReviewGradeButtonsProps) {
+}: ReviewRatingButtonsProps) {
   return (
     <div className="flex items-stretch gap-2.5">
       <button
