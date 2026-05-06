@@ -58,11 +58,15 @@ export function useReviewCards(deckId: string): ReviewQueueState {
     rating: (r) => {
       // page.tsxでも防御しているが二重でガード
       if (!current) return;
-      reviewedCard.mutate([
+      // 前回の採点が完了するまで受け付けない（二重送信を防ぐ）
+      if (reviewedCard.isPending) return;
+      // テンポ優先のためAPI完了を待たずに次のカードへ進める
+      setIndex((i) => i + 1);
+      // 次フェーズでshouldFetch/mergeQueueをawaitで繋ぐ準備としてmutateAsyncを使用する
+      void reviewedCard.mutateAsync([
         current.id,
         { rating: r, version: current.version },
       ]);
-      setIndex((i) => i + 1);
     },
   };
 }
