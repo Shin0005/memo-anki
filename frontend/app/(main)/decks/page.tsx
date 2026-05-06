@@ -21,8 +21,9 @@ export default function DeckListPage() {
   const [open, setOpen] = useState(false);
 
   // CRUD(可読性のためにラップしている)
-  const handleReview = () => {
-    console.log('復習:link');
+  const handleReview = (deckId: string) => {
+    // 一時的に配置
+    router.push(`/decks/${deckId}/review/complete`);
   };
   const handleEdit = (deckId: string) => {
     router.push(`/decks/${deckId}`);
