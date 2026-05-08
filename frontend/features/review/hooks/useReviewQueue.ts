@@ -77,9 +77,9 @@ export function useReviewCards(deckId: string): ReviewQueueState {
       const head = queue[0];
 
       // 先頭のCard以外取り出してstateに保存
-      const nextQueue = queue.slice(1);
+      const remainingQueue = queue.slice(1);
       // 次のqueueを待たず次のカードへ進める
-      setLocalQueue(nextQueue);
+      setLocalQueue(remainingQueue);
 
       try {
         // 採点API呼び出し
@@ -89,11 +89,13 @@ export function useReviewCards(deckId: string): ReviewQueueState {
         ]);
 
         // fetch条件
-        if (shouldFetch(nextQueue, lastFetchAt.current)) {
+        if (shouldFetch(remainingQueue, lastFetchAt.current)) {
           try {
             const newCards = await fetchReviewQueue(deckId);
             //mergeQueueで合成したQueueを保存（関数形式によりawaitによる参照ずれを防ぐ）
-            setLocalQueue((prev) => mergeQueue(prev ?? nextQueue, newCards));
+            setLocalQueue((prev) =>
+              mergeQueue(prev ?? remainingQueue, newCards),
+            );
           } finally {
             lastFetchAt.current = Date.now();
           }
