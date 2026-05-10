@@ -16,15 +16,16 @@ datasource db {
 
 // Userテーブル
 model User {
-  id                    String    @id @default(uuid())
-  username              String    @unique
-  email                 String?   @unique
+  id                    String             @id @default(uuid())
+  username              String             @unique
+  email                 String?            @unique
   passwordHash          String
   refreshTokenHash      String?
   refreshTokenExpiresAt DateTime? // refreshToken有効期限
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
   decks                 Deck[]
+  notionIntegration     NotionIntegration? // notion連携テーブル
 
   @@map("users")
 }
@@ -79,4 +80,19 @@ model Card {
   // デッキごとのカード取得を高速化
   @@index([deckId])
   @@map("card")
+}
+
+model NotionIntegration {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  accessTokenEnc  String // 暗号化済
+  refreshTokenEnc String // 暗号化済
+  workspaceId     String
+  workspaceName   String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  // userが削除されたら自動でnotionIntegrationも削除
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notion_integrations")
 }
