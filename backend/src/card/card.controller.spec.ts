@@ -8,17 +8,22 @@ import { describe, it, expect, beforeEach } from 'vitest';
 
 import { CardController } from './card.controller';
 import { CardService } from './card.service';
+import { ReviewService } from './review.service';
 import { CardResponse } from './dto/card.response';
+import { CardReviewResponse } from './dto/card-review.response';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { CreateCardRequest } from './dto/create-card.request';
 import { UpdateCardRequest } from './dto/update-card.request';
+import { ReviewCardRequest } from './dto/review-card.request';
 import { ParseBigIntIdPipe } from '../common/pipes/parse-bigint-id.pipe';
 import { InvalidIdFormatException } from '../common/exceptions/application.exceptions';
 import { Card } from '@prisma/client';
+import { CardType, ReviewRating } from '@memo-anki/shared';
 
 describe('CardController', () => {
   let controller: CardController;
   let serviceMock: DeepMockProxy<CardService>;
+  let reviewServiceMock: DeepMockProxy<ReviewService>;
   const targetPipe = new ValidationPipe({ transform: true });
 
   const userId = 'user-123';
@@ -44,6 +49,7 @@ describe('CardController', () => {
 
   beforeEach(async () => {
     serviceMock = mockDeep<CardService>();
+    reviewServiceMock = mockDeep<ReviewService>();
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [CardController],
@@ -51,6 +57,10 @@ describe('CardController', () => {
         {
           provide: CardService,
           useValue: serviceMock,
+        },
+        {
+          provide: ReviewService,
+          useValue: reviewServiceMock,
         },
       ],
     }).compile();
@@ -105,12 +115,12 @@ describe('CardController', () => {
       expect(result.id).toBe(mockCardData.id.toString());
     });
 
-    it('バリデーション: type に 0, 1 以外が指定された場合、400エラーとなること', async () => {
-      // [試験項目: 列挙型バリデーション]
+    it('バリデーション: type に CardType 以外の値が指定された場合、400エラーとなること', async () => {
+      // [試験項目: CardType enum バリデーション]
       const invalidRequest = new CreateCardRequest();
       invalidRequest.deckId = '10';
       invalidRequest.name = 'Test';
-      invalidRequest.type = 9; // 不正な値
+      invalidRequest.type = 9 as unknown as CardType; // 不正な値（型チェック迂回はテスト目的）
 
       const metadata: ArgumentMetadata = {
         type: 'body',
@@ -202,6 +212,79 @@ describe('CardController', () => {
 
       await expect(controller.deleteCard(userId, '1')).resolves.not.toThrow();
       expect(serviceMock.deleteCard).toHaveBeenCalledWith(userId, '1');
+    });
+  });
+
+  // --- reviewCard ---
+  describe('reviewCard', () => {
+    // 採点後の更新済みカード（versionが+1されている）
+    const updatedCard: Card = { ...mockCardData, version: 1 };
+
+    it('正常系: ReviewServiceに userId/cardId/rating/version が渡されること', async () => {
+      // [試験項目: 採点パススルー]
+      const request: ReviewCardRequest = {
+        rating: ReviewRating.GOOD,
+        version: 0,
+      };
+      reviewServiceMock.reviewCard.mockResolvedValue(updatedCard);
+
+      await controller.reviewCard(userId, '1', request);
+
+      expect(reviewServiceMock.reviewCard).toHaveBeenCalledWith({
+        userId,
+        cardId: '1',
+        rating: ReviewRating.GOOD,
+        version: 0,
+      });
+    });
+
+    it('正常系: 戻り値が CardReviewResponse でラップされていること', async () => {
+      // [試験項目: レスポンス型]
+      reviewServiceMock.reviewCard.mockResolvedValue(updatedCard);
+      const request: ReviewCardRequest = {
+        rating: ReviewRating.GOOD,
+        version: 0,
+      };
+
+      const result = await controller.reviewCard(userId, '1', request);
+
+      expect(result).toBeInstanceOf(CardReviewResponse);
+      // フロントは次の採点でversionを返送するためversionが必須
+      expect(result.version).toBe(1);
+    });
+
+    it('バリデーション: rating が範囲外(4)の場合、400エラー', async () => {
+      // [試験項目: rating範囲外]
+      const invalidRequest = new ReviewCardRequest();
+      invalidRequest.rating = 4 as unknown as ReviewRating; // 不正値で型迂回
+      invalidRequest.version = 0;
+
+      const metadata: ArgumentMetadata = {
+        type: 'body',
+        metatype: ReviewCardRequest,
+        data: '',
+      };
+
+      await expect(
+        targetPipe.transform(invalidRequest, metadata),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('バリデーション: version が負の数の場合、400エラー', async () => {
+      // [試験項目: 負のversion]
+      const invalidRequest = new ReviewCardRequest();
+      invalidRequest.rating = ReviewRating.GOOD;
+      invalidRequest.version = -1;
+
+      const metadata: ArgumentMetadata = {
+        type: 'body',
+        metatype: ReviewCardRequest,
+        data: '',
+      };
+
+      await expect(
+        targetPipe.transform(invalidRequest, metadata),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 });

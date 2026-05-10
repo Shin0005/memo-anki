@@ -1,4 +1,6 @@
 'use client';
+// cardEditModalに詳細記載
+'use no memo';
 
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
