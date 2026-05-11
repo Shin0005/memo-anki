@@ -11,29 +11,32 @@ services:
       - '5432:5432'
 
   backend:
-    build: ./backend
-    ports:
-      - '3001:3001'
+    build:
+      context: . # ルートをコンテキストに
+      dockerfile: backend/Dockerfile
+    ports: ['3001:3001']
     environment:
       DATABASE_URL: postgresql://user:password@db:5432/memoanki
-    depends_on:
-      - db
+    depends_on: [db]
     volumes:
-      - ./backend:/app
-      - /app/node_modules
+      - ./backend:/app/backend # ホットリロード用
+      - ./shared:/app/shared # shared も同期
+      - /app/backend/node_modules # backend 固有も保護
 
   frontend:
-    build: ./frontend
-    ports:
-      - '3000:3000'
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    command: npx next dev --webpack # turbopackは無限ループに陥ったので不使用
+    ports: ['3000:3000']
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:3001/api
-
-    depends_on:
-      - backend
+    depends_on: [backend]
     volumes:
-      - ./frontend:/app
-      - /app/node_modules
+      - ./frontend:/app/frontend
+      - ./shared:/app/shared
+      - /app/frontend/node_modules
+      - /app/frontend/.next # ホスト側のキャッシュをコンテナから遮断
 
 volumes:
   postgres_data:
