@@ -1,0 +1,26 @@
+
+**/node_modules
+
+# ビルド生成物
+**/dist
+**/.next
+
+# 環境変数
+**/.env
+**/.env.local
+
+# テストカバレッジ
+**/coverage
+
+# ログ
+**/*.log
+
+# Gitリポジトリ 
+.git
+
+# エディタ設定
+.vscode
+.claude
+
+# Postgres データボリューム
+postgres_data
