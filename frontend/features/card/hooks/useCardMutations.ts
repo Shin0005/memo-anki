@@ -19,7 +19,6 @@ export function useCardMutations() {
 
   const handleError = (err: unknown) => {
     if (err instanceof HttpError) {
-      console.error(`[Card API Error] ${err.statusCode}: ${err.message}`);
       switch (err.statusCode) {
         case HttpStatus.BAD_REQUEST:
           toast.error('正しい形式で入力してください');
@@ -34,7 +33,6 @@ export function useCardMutations() {
           toast.error('サーバーエラーが発生しました');
       }
     } else {
-      console.error('[Network Error]', err);
       toast.error('ネットワークエラーが発生しました');
     }
   };

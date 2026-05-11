@@ -2,9 +2,19 @@ FROM node:22
 
 WORKDIR /app
 
-COPY package*.json ./
+# 依存解決に必要な package.json をまず全部コピー(キャッシュ効きやすくするため)
+COPY package.json package-lock.json ./
+COPY shared/package.json shared/
+COPY backend/package.json backend/
+
 RUN npm install
 
-COPY . .
+# ソースコードをコピー
+COPY shared ./shared
+COPY backend ./backend
 
-CMD ["sh", "-c", "npx prisma generate && npm run start:dev"]
+# shared は dist を import するので先にビルド
+RUN npm run build --workspace=@memo-anki/shared
+
+WORKDIR /app/backend
+CMD ["sh", "-c", "npx prisma migrate deploy && npx prisma generate && npm run start:dev"]
