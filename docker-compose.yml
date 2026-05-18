@@ -13,7 +13,7 @@ services:
   backend:
     build:
       context: . # ルートをコンテキストに
-      dockerfile: backend/Dockerfile
+      dockerfile: backend/Dockerfile.dev
     ports: ['3001:3001']
     environment:
       DATABASE_URL: postgresql://user:password@db:5432/memoanki
@@ -26,7 +26,7 @@ services:
   frontend:
     build:
       context: .
-      dockerfile: frontend/Dockerfile
+      dockerfile: frontend/Dockerfile.dev
     command: npx next dev --webpack # turbopackは無限ループに陥ったので不使用
     ports: ['3000:3000']
     environment:
