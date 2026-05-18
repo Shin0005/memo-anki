@@ -24,6 +24,11 @@ FROM node:22-slim AS runner
 
 WORKDIR /app
 
+# Prisma公式のDockerガイドに従い、openssl パッケージを明示的にインストールする(libssl3 が依存で入る)。
+RUN apt-get update -y \
+  && apt-get install -y --no-install-recommends openssl \
+  && rm -rf /var/lib/apt/lists/*
+
 COPY package.json package-lock.json ./
 COPY shared/package.json shared/
 COPY backend/package.json backend/
