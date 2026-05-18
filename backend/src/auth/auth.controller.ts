@@ -103,8 +103,8 @@ export class AuthController {
       // 開発中はhttpを使うのでfalse, デプロイはhttpsなのでtrue
       // httpでtrueだと、loginしてもtokenが登録されない
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax', // CSRF対策はATをcookieに置くため未設定
-      path: '/',
+      // クロスサイトリクエストでcookieを送るかどうか。開発中はlax、デプロイはnone
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7日間
     });
   }
