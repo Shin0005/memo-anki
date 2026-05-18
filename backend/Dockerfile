@@ -13,10 +13,10 @@ RUN npm ci
 COPY shared ./shared
 COPY backend ./backend
 
+RUN npx prisma generate --schema=backend/prisma/schema.prisma
+
 RUN npm run build --workspace=@memo-anki/shared
 RUN npm run build --workspace=backend
-
-RUN npx prisma generate --schema=backend/prisma/schema.prisma
 
 # Stage 2: runner
 # 本番ランタイム。slimで軽量化、本番依存のみ
@@ -28,7 +28,7 @@ COPY package.json package-lock.json ./
 COPY shared/package.json shared/
 COPY backend/package.json backend/
 
-RUN npm ci --omit=dev
+RUN npm ci --omit=dev --ignore-scripts 
 
 COPY --from=builder /app/shared/dist ./shared/dist
 COPY --from=builder /app/backend/dist ./backend/dist
