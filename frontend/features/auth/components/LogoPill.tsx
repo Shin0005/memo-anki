@@ -1,17 +1,18 @@
-// memo-anki のロゴ pill。
-// 元 HTML の .logo-pill（黒背景 / 白文字 / 角丸 / pill 形状）をそのまま再現。
+// memo-anki のロゴ画像。
+import Image from 'next/image';
+
+const LOGO_WIDTH = 310;
+const LOGO_HEIGHT = 90;
 
 export default function LogoPill() {
   return (
-    <span
-      className="inline-block bg-slate-900 text-white font-bold rounded-lg"
-      style={{
-        padding: '6px 14px',
-        fontSize: '18px',
-        letterSpacing: '0.01em',
-      }}
-    >
-      memo-anki
-    </span>
+    <Image
+      src="/memo-anki-logo.png"
+      alt="memo-anki"
+      width={LOGO_WIDTH}
+      height={LOGO_HEIGHT}
+      priority // ログイン画面で最初に見える要素なので優先読み込み
+      className="inline-block rounded-2xl"
+    />
   );
 }
