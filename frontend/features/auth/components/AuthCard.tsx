@@ -5,7 +5,6 @@
 'use client';
 
 import { useState } from 'react';
-import LogoPill from './LogoPill';
 import AuthTabs, { type AuthTab } from './AuthTabs';
 import LoginForm from './LoginForm';
 import RegisterForm from './RegisterForm';
@@ -17,11 +16,6 @@ export default function AuthCard() {
 
   return (
     <div className="w-full max-w-[400px]">
-      {/* ロゴ */}
-      <div className="flex justify-center mb-8">
-        <LogoPill />
-      </div>
-
       {/* カード本体 */}
       <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
         <AuthTabs active={tab} onChange={setTab} />
@@ -33,6 +27,16 @@ export default function AuthCard() {
             <RegisterForm onSubmit={(values) => register.mutate(values)} />
           )}
         </div>
+        {/* デモユーザボタン */}
+        <button
+          type="button"
+          onClick={() =>
+            login.mutate({ username: 'user1234', password: 'user1234' })
+          }
+          className="btn btn-neutral w-full"
+        >
+          デモユーザーで体験する
+        </button>
       </div>
     </div>
   );
