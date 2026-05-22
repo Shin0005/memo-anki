@@ -16,7 +16,7 @@ export default function LoginPage() {
           <div>
             {/* ロゴ */}
             <div className="mb-6">
-              <LogoPill />
+              <LogoPill width={undefined} height={undefined} />
             </div>
 
             {/* タグライン + 説明 */}
