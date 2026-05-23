@@ -115,11 +115,14 @@ export class CardController {
     @GetUserId() userId: string,
     @Query('deckId', ParseBigIntIdPipe) deckId: string,
   ) {
+    // service は {card, preview} の配列を返す。
     const responses = await this.reviewService.findReviewCards({
       deckId,
       userId,
     });
-    return responses.map((card) => new CardReviewResponse(card));
+    return responses.map(
+      ({ card, preview }) => new CardReviewResponse(card, preview),
+    );
   }
 
   /** 採点を反映する */

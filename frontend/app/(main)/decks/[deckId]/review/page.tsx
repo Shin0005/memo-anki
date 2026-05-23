@@ -97,6 +97,7 @@ export default function ReviewPage() {
       }}
       // quizかつ回答が表示されているときtrue(ボタン有効化)
       ratingDisabled={isQuiz && !answerShown}
+      preview={current.preview}
     >
       {/* children */}
       {isQuiz ? (
