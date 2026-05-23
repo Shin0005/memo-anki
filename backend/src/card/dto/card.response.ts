@@ -39,6 +39,9 @@ export class CardResponse {
   @ApiProperty({ example: '2024-01-01T00:00:00.000Z' })
   updatedAt: Date;
 
+  @ApiProperty({ example: '2024-01-01T00:00:00.000Z' })
+  nextReviewAt: Date;
+
   constructor(card: Card) {
     // FK PKはNOT NULL制約のため異常発生してもここに来る前にエラー
     this.id = card.id?.toString();
@@ -49,5 +52,6 @@ export class CardResponse {
     this.question = card.question; // 明確にnullにしたい
     this.answer = card.answer; // 明確にnullにしたい
     this.updatedAt = card.updatedAt;
+    this.nextReviewAt = card.nextReviewAt;
   }
 }

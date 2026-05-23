@@ -27,8 +27,12 @@ export default function CardList({ cards, onEdit, onDelete }: CardListProps) {
       >
         <span>カード名 / タイプ</span>
         <span className="hidden md:block">詳細</span>
-        <span className="hidden md:block">作成日時</span>
-        <span />
+        <span className="hidden md:block">次回復習日時</span>
+        {/* ボタン列の幅をRowと合わせるための透明ダミー */}
+        <span className="flex gap-2 shrink-0 invisible" aria-hidden="true">
+          <span className="w-15"></span>
+          <span className="w-15"></span>
+        </span>
       </div>
 
       {/* 行 */}

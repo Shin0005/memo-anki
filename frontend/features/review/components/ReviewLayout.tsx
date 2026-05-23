@@ -7,6 +7,9 @@ import { CardType, ReviewRating } from '@memo-anki/shared';
 
 import CardTypeBadge from '@/features/card/components/CardTypeBadge';
 import ReviewRatingButtons from './ReviewRatingButtons';
+import type { components } from '@memo-anki/shared';
+type ReviewPreviewResponse =
+  components['schemas']['CardReviewResponse']['preview'];
 
 type ReviewLayoutProps = {
   deckId: string;
@@ -15,6 +18,7 @@ type ReviewLayoutProps = {
   cardType: CardType;
   onRating: (rating: ReviewRating) => void;
   ratingDisabled?: boolean;
+  preview: ReviewPreviewResponse;
   /** カード本文 + 回答などのカード中身。NOTE/QUIZ で差し替える。 */
   children: ReactNode;
 };
@@ -26,6 +30,7 @@ export default function ReviewLayout({
   cardType,
   onRating,
   ratingDisabled = false,
+  preview,
   children,
 }: ReviewLayoutProps) {
   return (
@@ -65,6 +70,7 @@ export default function ReviewLayout({
             <ReviewRatingButtons
               onRating={onRating}
               disabled={ratingDisabled}
+              preview={preview}
             />
           </div>
         </section>

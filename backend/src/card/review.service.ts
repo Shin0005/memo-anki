@@ -24,6 +24,20 @@ export type ReviewCardDto = {
   version: number;
 };
 
+/** 採点ボタンに表示する次回復習時間(ミリ秒)のプレビュー値。*/
+export type ReviewPreview = {
+  again: number;
+  hard: number;
+  good: number;
+  easy: number;
+};
+
+/** 復習キューの1要素: カード本体と4つの採点プレビュー */
+export type ReviewQueueItem = {
+  card: Card;
+  preview: ReviewPreview;
+};
+
 @Injectable()
 export class ReviewService {
   constructor(
@@ -33,9 +47,9 @@ export class ReviewService {
   ) {}
   /**
    * 復習キューを取得する
-   * @returns ソートされたCard10件
+   * @returns ソートされたカード10件 + 採点プレビュー
    */
-  async findReviewCards(dto: GetReviewCardDto) {
+  async findReviewCards(dto: GetReviewCardDto): Promise<ReviewQueueItem[]> {
     // PrismaのInput型がないのでdtoのままRepositoryへ渡す。
     const { deckId, userId } = dto;
 
@@ -49,7 +63,18 @@ export class ReviewService {
     );
     // カードを並び替え
     const sortedQueue: Card[] = sortReviewQueue(reviewCards);
-    return sortedQueue;
+
+    // 並び替え後のカードそれぞれに対し4採点分の次回待ち時間(ms)を計算。
+    const now = new Date();
+    return sortedQueue.map((card) => ({
+      card,
+      preview: {
+        again: applyRating(card, ReviewRating.AGAIN, now).intervalMs,
+        hard: applyRating(card, ReviewRating.HARD, now).intervalMs,
+        good: applyRating(card, ReviewRating.GOOD, now).intervalMs,
+        easy: applyRating(card, ReviewRating.EASY, now).intervalMs,
+      },
+    }));
   }
 
   /**
