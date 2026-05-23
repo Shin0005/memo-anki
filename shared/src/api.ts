@@ -284,6 +284,11 @@ export interface components {
              * @example 2024-01-01T00:00:00.000Z
              */
             updatedAt: string;
+            /**
+             * Format: date-time
+             * @example 2024-01-01T00:00:00.000Z
+             */
+            nextReviewAt: string;
         };
         /**
          * @description 0=AGAIN, 1=HARD, 2=GOOD, 3=EASY
