@@ -302,6 +302,28 @@ export interface components {
              */
             version: number;
         };
+        ReviewPreviewResponse: {
+            /**
+             * @description AGAINを押した時の次回待ち時間(ms)
+             * @example 60000
+             */
+            again: number;
+            /**
+             * @description HARDを押した時の次回待ち時間(ms)
+             * @example 600000
+             */
+            hard: number;
+            /**
+             * @description GOODを押した時の次回待ち時間(ms)
+             * @example 3600000
+             */
+            good: number;
+            /**
+             * @description EASYを押した時の次回待ち時間(ms)
+             * @example 86400000
+             */
+            easy: number;
+        };
         CardReviewResponse: {
             /** @example 1 */
             id: string;
@@ -332,6 +354,7 @@ export interface components {
              * @example 0
              */
             version: number;
+            preview?: components["schemas"]["ReviewPreviewResponse"];
         };
     };
     responses: never;

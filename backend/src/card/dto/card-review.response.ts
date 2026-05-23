@@ -1,6 +1,38 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Card } from '@prisma/client';
 import { CardType } from '@memo-anki/shared';
+
+/**
+ * 採点ボタンに表示する次回復習時間(ms)のプレビュー。
+ * フロントは "+1分" "+1日" などに整形して各ボタン内に表示する。
+ * swaggerの都合でtypeでなくclassにして型共有する
+ */
+export class ReviewPreviewResponse {
+  @ApiProperty({
+    example: 60000,
+    description: 'AGAINを押した時の次回待ち時間(ms)',
+  })
+  again: number;
+
+  @ApiProperty({
+    example: 600000,
+    description: 'HARDを押した時の次回待ち時間(ms)',
+  })
+  hard: number;
+
+  @ApiProperty({
+    example: 3600000,
+    description: 'GOODを押した時の次回待ち時間(ms)',
+  })
+  good: number;
+
+  @ApiProperty({
+    example: 86400000,
+    description: 'EASYを押した時の次回待ち時間(ms)',
+  })
+  easy: number;
+}
+
 /** 復習キュー用レスポンス（楽観ロックのversionをフロントが採点時に返送する） */
 export class CardReviewResponse {
   @ApiProperty({ example: '1' })
@@ -45,7 +77,11 @@ export class CardReviewResponse {
   @ApiProperty({ example: 0, description: '楽観ロック用バージョン' })
   version: number;
 
-  constructor(card: Card) {
+  // findReviewCards経由のときだけ詰める。
+  @ApiPropertyOptional({ type: ReviewPreviewResponse })
+  preview?: ReviewPreviewResponse;
+
+  constructor(card: Card, preview?: ReviewPreviewResponse) {
     // FK PKはNOT NULL制約のため異常発生してもここに来る前にエラー
     this.id = card.id?.toString();
     this.deckId = card.deckId?.toString();
@@ -57,5 +93,6 @@ export class CardReviewResponse {
     this.queue = card.queue;
     this.nextReviewAt = card.nextReviewAt;
     this.version = card.version;
+    this.preview = preview;
   }
 }
