@@ -14,7 +14,7 @@ type CardRowProps = {
 
 export default function CardRow({ card, onEdit, onDelete }: CardRowProps) {
   const detail = buildCardDetail(card);
-  const date = formatDate(card.updatedAt);
+  const date = formatDate(card.nextReviewAt);
 
   return (
     <li
@@ -39,7 +39,7 @@ export default function CardRow({ card, onEdit, onDelete }: CardRowProps) {
         {detail}
       </div>
 
-      {/* 日時（md以上で表示） */}
+      {/* 次回復習日時（md以上で表示） */}
       <div className="hidden md:block text-[12px] text-gray-400 whitespace-nowrap">
         {date}
       </div>
