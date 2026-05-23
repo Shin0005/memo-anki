@@ -23,6 +23,7 @@ export type ReviewUpdate = {
   interval: number;
   easeFactor: number;
   nextReviewAt: Date;
+  intervalMs: number; // 採点プレビュー用の採点間隔
 };
 
 /**
@@ -57,6 +58,7 @@ export function applyRating(
         interval: card.interval,
         easeFactor: card.easeFactor,
         nextReviewAt: card.nextReviewAt,
+        intervalMs: 0, // 状態が変わらない＝待ち時間も伸びないので0
       };
   }
 }
@@ -77,6 +79,7 @@ function applyToNew(card: Card, rating: ReviewRating, now: Date): ReviewUpdate {
         interval: card.interval,
         easeFactor: card.easeFactor,
         nextReviewAt: addMs(now, 1 * ONE_MIN),
+        intervalMs: 1 * ONE_MIN,
       };
     case ReviewRating.HARD:
       // nextReviewAtを"10分後"に設定
@@ -86,6 +89,7 @@ function applyToNew(card: Card, rating: ReviewRating, now: Date): ReviewUpdate {
         interval: card.interval,
         easeFactor: card.easeFactor,
         nextReviewAt: addMs(now, 10 * ONE_MIN),
+        intervalMs: 10 * ONE_MIN,
       };
     case ReviewRating.GOOD:
       // SHORTへ昇格。repetitionをリセット。nextReviewAtを"1時間後"に設定
@@ -95,6 +99,7 @@ function applyToNew(card: Card, rating: ReviewRating, now: Date): ReviewUpdate {
         interval: card.interval,
         easeFactor: card.easeFactor,
         nextReviewAt: addMs(now, 1 * ONE_HOUR),
+        intervalMs: 1 * ONE_HOUR,
       };
     case ReviewRating.EASY:
       // LONGへ即昇格。SM-2の初期状態(rep=1, interval=1)に揃える。nextReviewAtを"1日後"に設定
@@ -104,6 +109,7 @@ function applyToNew(card: Card, rating: ReviewRating, now: Date): ReviewUpdate {
         interval: 1,
         easeFactor: card.easeFactor,
         nextReviewAt: addMs(now, 1 * ONE_DAY),
+        intervalMs: 1 * ONE_DAY,
       };
   }
 }
@@ -128,6 +134,7 @@ function applyToShort(
         interval: card.interval,
         easeFactor: card.easeFactor,
         nextReviewAt: addMs(now, 1 * ONE_MIN),
+        intervalMs: 1 * ONE_MIN,
       };
     case ReviewRating.HARD:
       // nextReviewAtを"10分後"に設定
@@ -137,6 +144,7 @@ function applyToShort(
         interval: card.interval,
         easeFactor: card.easeFactor,
         nextReviewAt: addMs(now, 10 * ONE_MIN),
+        intervalMs: 10 * ONE_MIN,
       };
     case ReviewRating.GOOD: {
       const nextRep = card.repetition + 1;
@@ -149,6 +157,7 @@ function applyToShort(
           interval: 1,
           easeFactor: card.easeFactor,
           nextReviewAt: addMs(now, 1 * ONE_DAY),
+          intervalMs: 1 * ONE_DAY,
         };
       }
       // 1回目のgoodでrepetition += 1, nextReviewAtを"1時間後"に設定
@@ -158,6 +167,7 @@ function applyToShort(
         interval: card.interval,
         easeFactor: card.easeFactor,
         nextReviewAt: addMs(now, 1 * ONE_HOUR),
+        intervalMs: 1 * ONE_HOUR,
       };
     }
     case ReviewRating.EASY:
@@ -168,6 +178,7 @@ function applyToShort(
         interval: 1,
         easeFactor: card.easeFactor,
         nextReviewAt: addMs(now, 1 * ONE_DAY),
+        intervalMs: 1 * ONE_DAY,
       };
   }
 }
@@ -197,6 +208,7 @@ function applyToLong(
         interval: 1,
         easeFactor: ef,
         nextReviewAt: addMs(now, 1 * ONE_MIN),
+        intervalMs: 1 * ONE_MIN,
       };
     }
     case ReviewRating.HARD: {
@@ -210,6 +222,7 @@ function applyToLong(
         interval: nextInterval,
         easeFactor: ef,
         nextReviewAt: addMs(now, nextInterval * ONE_DAY),
+        intervalMs: nextInterval * ONE_DAY,
       };
     }
     case ReviewRating.GOOD: {
@@ -223,6 +236,7 @@ function applyToLong(
         interval: nextInterval,
         easeFactor: ef,
         nextReviewAt: addMs(now, nextInterval * ONE_DAY),
+        intervalMs: nextInterval * ONE_DAY,
       };
     }
     case ReviewRating.EASY: {
@@ -237,6 +251,7 @@ function applyToLong(
         interval: nextInterval,
         easeFactor: ef,
         nextReviewAt: addMs(now, nextInterval * ONE_DAY),
+        intervalMs: nextInterval * ONE_DAY,
       };
     }
   }

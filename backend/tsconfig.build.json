@@ -1,4 +1,15 @@
 {
   "extends": "./tsconfig.json",
-  "exclude": ["node_modules", "test", "dist", "**/*spec.ts"]
+  // 本番ビルドでは src/ 配下だけをコンパイル対象にする。
+  // backend 直下にある prisma.config.ts / vitest.config.ts / scripts は
+  // ビルドに含めると rootDir が backend/ に格上げされ、出力が dist/src/main.js になってしまうため除外する。
+  "exclude": [
+    "node_modules",
+    "test",
+    "dist",
+    "**/*spec.ts",
+    "prisma.config.ts",
+    "vitest.config.ts",
+    "scripts"
+  ]
 }

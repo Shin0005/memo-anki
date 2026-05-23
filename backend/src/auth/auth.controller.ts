@@ -9,6 +9,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ApiResponse } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { AuthResponse } from './dto/auth.response';
 import { RefreshResponse } from './dto/refresh.response';
@@ -21,6 +22,8 @@ import express from 'express';
 export class AuthController {
   constructor(private authService: AuthService) {}
 
+  // brute force 対策: 1分5回まで
+  @Throttle({ default: { ttl: 60_000, limit: 5 } })
   @Post('register')
   @ApiResponse({ status: 201, type: AuthResponse })
   async register(
@@ -39,6 +42,8 @@ export class AuthController {
     );
   }
 
+  // brute force 対策: 1分5回まで
+  @Throttle({ default: { ttl: 60_000, limit: 5 } })
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiResponse({ status: 200, type: AuthResponse })
@@ -70,6 +75,8 @@ export class AuthController {
     res.clearCookie('refresh_token', { path: '/' });
   }
 
+  // 1分10回まで(AT失効時の正常な再発行を阻害しない上限)
+  @Throttle({ default: { ttl: 60_000, limit: 10 } })
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   @ApiResponse({ status: 200, type: RefreshResponse })
@@ -103,8 +110,8 @@ export class AuthController {
       // 開発中はhttpを使うのでfalse, デプロイはhttpsなのでtrue
       // httpでtrueだと、loginしてもtokenが登録されない
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax', // CSRF対策はATをcookieに置くため未設定
-      path: '/',
+      // クロスサイトリクエストでcookieを送るかどうか。開発中はlax、デプロイはnone
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7日間
     });
   }
