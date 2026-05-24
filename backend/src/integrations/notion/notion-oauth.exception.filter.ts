@@ -30,6 +30,11 @@ export class NotionOAuthExceptionFilter implements ExceptionFilter {
     // BADREQUESTに関してはクライアント由来であり調査の必要性が薄い。
     if (exception instanceof BadGatewayException) {
       this.logger.error(exception.message, exception.stack);
+      // cause walk: SDK元エラー（APIResponseError等）も出す
+      const cause = (exception as Error).cause;
+      if (cause instanceof Error) {
+        this.logger.error(`Caused by: ${cause.message}`, cause.stack);
+      }
     } else {
       this.logger.warn(exception.message);
     }
