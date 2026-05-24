@@ -13,6 +13,7 @@ import CardCreateModal from '@/features/card/components/CardCreateModal';
 import CardEditModal from '@/features/card/components/CardEditModal';
 import DeckUpdateModal from '@/features/deck/components/DeckUpdateModal';
 import { useDeckMutations } from '@/features/deck/hooks/useDeckMutations';
+import { useNotionAuth } from '@/features/integration/notion/hooks/useNotionAuth';
 
 type Card = components['schemas']['CardResponse'];
 type CreateCardRequest = components['schemas']['CreateCardRequest'];
@@ -40,6 +41,7 @@ export default function CardListPage() {
   const { data: cards = [], isLoading, isError, error } = useCards(deckId);
   const { createCard, updateCard, deleteCard } = useCardMutations();
   const { updateDeck } = useDeckMutations();
+  const { connect: connectNotion } = useNotionAuth(deckId);
 
   // useState（モーダル開閉）
   const [openEditDeck, setOpenEditDeck] = useState(false);
@@ -78,6 +80,7 @@ export default function CardListPage() {
             deckName={deck?.name ?? ''}
             onEditDeck={() => setOpenEditDeck(true)}
             onCreateCard={() => setOpenCreateCard(true)}
+            onConnectNotion={() => connectNotion.mutate()}
           />
           <CardList
             cards={cards}
