@@ -6,16 +6,44 @@ import {
   it,
   expect,
   beforeEach,
-  afterEach,
   vi,
   beforeAll,
   afterAll,
 } from 'vitest';
 import { BadGatewayException } from '@nestjs/common';
 import type { NotionIntegration } from '@prisma/client';
+import {
+  APIResponseError,
+  RequestTimeoutError,
+  type OauthTokenResponse,
+} from '@notionhq/client';
 
 import { NotionOAuthService } from './notion-oauth.service';
 import { NotionIntegrationRepository } from './notion-integration.repository';
+
+/**
+ * @notionhq/client (Notion 公式 SDK) のモック
+ * - 実 HTTP は飛ばしたいので Client.oauth.token を vi.fn() に差し替える
+ * - 各テストでは mockOauthToken.mockResolvedValue / mockRejectedValue を切り替えて使う
+ */
+const { mockOauthToken } = vi.hoisted(() => ({
+  mockOauthToken: vi.fn(),
+}));
+
+// Client は new で呼ばれるので class で差し替える。
+// APIResponseError 等のエラークラスは instanceof 判定に使うので、実物を importActual で残す
+vi.mock('@notionhq/client', async () => {
+  const actual =
+    await vi.importActual<typeof import('@notionhq/client')>(
+      '@notionhq/client',
+    );
+  return {
+    ...actual,
+    Client: class {
+      oauth = { token: mockOauthToken };
+    },
+  };
+});
 
 /**
  * NotionOAuthService の単体試験
@@ -64,43 +92,44 @@ describe('NotionOAuthService', () => {
     }).compile();
 
     service = module.get<NotionOAuthService>(NotionOAuthService);
+    // SDK モックの実装と呼び出し履歴を毎回リセット（前テストの mockResolvedValue を引きずらない）
+    mockOauthToken.mockReset();
     vi.clearAllMocks();
   });
 
-  afterEach(() => {
-    // fetch を都度 mock するため、各テスト後に必ず元へ戻す
-    vi.restoreAllMocks();
-  });
+  /**
+   * SDK の OauthTokenResponse は workspace_icon / bot_id / owner / token_type 等の必須項目を
+   * 多く含むが、service 側ではこれら 4 項目しか参照しないため、テストでは Partial を
+   * OauthTokenResponse としてキャストして渡す。
+   */
+  const buildOauthResponse = (
+    overrides: Partial<OauthTokenResponse>,
+  ): OauthTokenResponse =>
+    ({
+      access_token: 'AT',
+      refresh_token: 'RT',
+      workspace_id: 'ws',
+      workspace_name: 'name',
+      ...overrides,
+    }) as OauthTokenResponse;
 
   // ---------------------------------------------------------------------------
   // exchangeCodeForTokens
   // ---------------------------------------------------------------------------
   describe('exchangeCodeForTokens', () => {
-    /**
-     * Notion の token エンドポイントの 200 レスポンスを模した body を返す
-     * fetch 全体の mock を仕込むユーティリティ
-     */
-    const mockFetchJson = (status: number, body: unknown) => {
-      const fetchMock = vi.fn().mockResolvedValue({
-        ok: status >= 200 && status < 300,
-        status,
-        json: () => body,
-      });
-      vi.stubGlobal('fetch', fetchMock);
-      return fetchMock;
-    };
-
-    it('正常系: 200で必要項目が揃ったレスポンス → 4項目だけ抽出して返すこと', async () => {
-      // Notion が返す余分なフィールド (workspace_icon 等) は捨てる仕様
-      mockFetchJson(200, {
-        access_token: 'AT-xxx',
-        refresh_token: 'RT-xxx',
-        workspace_id: 'ws-1',
-        workspace_name: 'My Workspace',
-        workspace_icon: 'should-be-ignored',
-        bot_id: 'should-be-ignored',
-        token_type: 'bearer',
-      });
+    it('正常系: SDKが返したレスポンスから 4項目だけ抽出して返すこと', async () => {
+      // SDK レスポンスには workspace_icon / bot_id 等も含まれるが service は捨てる仕様
+      mockOauthToken.mockResolvedValue(
+        buildOauthResponse({
+          access_token: 'AT-xxx',
+          refresh_token: 'RT-xxx',
+          workspace_id: 'ws-1',
+          workspace_name: 'My Workspace',
+          workspace_icon: 'should-be-ignored',
+          bot_id: 'should-be-ignored',
+          token_type: 'bearer',
+        }),
+      );
 
       const result = await service.exchangeCodeForTokens('dummy-code');
 
@@ -113,84 +142,68 @@ describe('NotionOAuthService', () => {
       });
     });
 
-    it('呼び出し検証: URL / Basic認証ヘッダ / body が仕様通りであること', async () => {
-      const fetchMock = mockFetchJson(200, {
-        access_token: 'AT',
-        refresh_token: 'RT',
-        workspace_id: 'ws',
-        workspace_name: 'name',
-      });
+    it('呼び出し検証: oauth.token に grant_type/code/redirect_uri/client_id/client_secret が渡されること', async () => {
+      // URL や Basic 認証ヘッダの組み立ては SDK 側の責務になったので、
+      // service 単体テストでは「SDK に正しい引数を渡したか」のみを検証する
+      mockOauthToken.mockResolvedValue(buildOauthResponse({}));
 
       await service.exchangeCodeForTokens('code-123');
 
-      // base64(<client_id>:<client_secret>) を組み立てて比較
-      const expectedBasic = Buffer.from(
-        'test-client-id:test-client-secret',
-      ).toString('base64');
-
-      expect(fetchMock).toHaveBeenCalledTimes(1);
-      const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-
-      // URL
-      expect(url).toBe('https://api.notion.com/v1/oauth/token');
-      // method
-      expect(init.method).toBe('POST');
-      // headers
-      expect(init.headers).toMatchObject({
-        Authorization: `Basic ${expectedBasic}`,
-        'Content-Type': 'application/json',
-      });
-      // body は JSON 文字列で、grant_type / code / redirect_uri が乗ること
-      expect(JSON.parse(init.body as string)).toEqual({
+      expect(mockOauthToken).toHaveBeenCalledTimes(1);
+      expect(mockOauthToken).toHaveBeenCalledWith({
         grant_type: 'authorization_code',
         code: 'code-123',
         redirect_uri: 'http://localhost:3001/api/integrations/notion/callback',
+        client_id: 'test-client-id',
+        client_secret: 'test-client-secret',
       });
     });
 
-    it('異常系: fetch 自体が throw → BadGatewayException', async () => {
-      // ネットワーク断などで fetch が rejected promise を返すケース
-      vi.stubGlobal(
-        'fetch',
-        vi.fn().mockRejectedValue(new Error('network down')),
+    // APIResponseError は Notion 側エラー（invalid_grant等）。service は内部用 message で投げ直す
+    it('異常系: APIResponseError → BadGateway (内部用 message / cause 保持)', async () => {
+      const apiErr = new APIResponseError({
+        code: 'unauthorized' as never,
+        status: 401,
+        message: 'invalid_grant',
+        headers: new Headers(),
+        rawBodyText: '{"error":"invalid_grant"}',
+        additional_data: undefined,
+        request_id: undefined,
+      });
+      mockOauthToken.mockRejectedValue(apiErr);
+
+      await expect(service.exchangeCodeForTokens('code')).rejects.toMatchObject(
+        {
+          constructor: BadGatewayException,
+          message: 'Notion連携に失敗しました。',
+          cause: apiErr,
+        },
       );
-
-      await expect(
-        service.exchangeCodeForTokens('code'),
-      ).rejects.toBeInstanceOf(BadGatewayException);
     });
 
-    it('異常系: response.ok=false (4xx/5xx) → BadGatewayException', async () => {
-      mockFetchJson(400, { error: 'invalid_grant' });
+    // それ以外（RequestTimeoutError / network 系）は通信用 message で投げ直す
+    it('異常系: RequestTimeoutError → BadGateway (通信用 message / cause 保持)', async () => {
+      const timeoutErr = new RequestTimeoutError('request timed out');
+      mockOauthToken.mockRejectedValue(timeoutErr);
 
-      await expect(
-        service.exchangeCodeForTokens('code'),
-      ).rejects.toBeInstanceOf(BadGatewayException);
+      await expect(service.exchangeCodeForTokens('code')).rejects.toMatchObject(
+        {
+          constructor: BadGatewayException,
+          message: 'Notionへの接続に失敗しました。',
+          cause: timeoutErr,
+        },
+      );
     });
 
-    // 必須項目欠落のパターンを it.each で網羅
-    it.each([
-      [
-        'access_token 欠落',
-        { refresh_token: 'r', workspace_id: 'w', workspace_name: 'n' },
-      ],
-      [
-        'refresh_token 欠落',
-        { access_token: 'a', workspace_id: 'w', workspace_name: 'n' },
-      ],
-      [
-        'workspace_id 欠落',
-        { access_token: 'a', refresh_token: 'r', workspace_name: 'n' },
-      ],
-      [
-        'workspace_name 欠落',
-        { access_token: 'a', refresh_token: 'r', workspace_id: 'w' },
-      ],
+    // OauthTokenResponse 型上、refresh_token と workspace_name は nullable。
+    // access_token / workspace_id は SDK 型で non-null 保証されているため runtime チェック不要
+    it.each<[string, Partial<OauthTokenResponse>]>([
+      ['refresh_token が null', { refresh_token: null, workspace_name: 'n' }],
+      ['workspace_name が null', { refresh_token: 'r', workspace_name: null }],
     ])(
       '異常系: 必須項目欠落 (%s) → BadGatewayException',
-      async (_label, body) => {
-        // [試験項目: exchange レスポンス必須項目欠落]
-        mockFetchJson(200, body);
+      async (_label, partial) => {
+        mockOauthToken.mockResolvedValue(buildOauthResponse(partial));
 
         await expect(
           service.exchangeCodeForTokens('code'),

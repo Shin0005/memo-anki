@@ -116,7 +116,7 @@ describe('NotionOAuthController.callback', () => {
 
       // import画面へredirect
       expect(res.redirect).toHaveBeenCalledWith(
-        'http://localhost:3000/decks/deck-99/notion-import',
+        'http://localhost:3000/decks/deck-99?integration=notion_success',
       );
     });
   });
