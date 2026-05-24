@@ -2,6 +2,11 @@ import { BadGatewayException, Injectable } from '@nestjs/common';
 import { randomBytes } from 'crypto';
 import { NotionIntegrationRepository } from './notion-integration.repository';
 import { getEnv } from '../../common/functions/get-env';
+import {
+  Client,
+  APIResponseError,
+  type OauthTokenResponse,
+} from '@notionhq/client';
 
 /**
  * Notion OAuth tokenエンドポイントのレスポンス（必要項目のみ）
@@ -20,8 +25,6 @@ export class NotionOAuthService {
   // Notion OAuth関連のエンドポイント
   private static readonly NOTION_AUTHORIZE_URL =
     'https://api.notion.com/v1/oauth/authorize';
-  private static readonly NOTION_TOKEN_URL =
-    'https://api.notion.com/v1/oauth/token';
 
   constructor(private readonly repository: NotionIntegrationRepository) {}
 
@@ -46,56 +49,39 @@ export class NotionOAuthService {
    * @returns Notionから送られたtoken（保存対象のみ抽出）
    */
   async exchangeCodeForTokens(code: string): Promise<NotionTokenResponse> {
-    const clientId = getEnv('NOTION_CLIENT_ID');
-    const clientSecret = getEnv('NOTION_CLIENT_SECRET');
-    const redirectUri = getEnv('NOTION_REDIRECT_URI');
+    const notion = new Client();
 
-    // Basic認証ヘッダ用のbase64文字列
-    const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString(
-      'base64',
-    );
-
-    let response: Response;
+    let response: OauthTokenResponse;
     try {
-      response = await fetch(NotionOAuthService.NOTION_TOKEN_URL, {
-        method: 'POST',
-        headers: {
-          Authorization: `Basic ${credentials}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          grant_type: 'authorization_code', // Notionに認可codeだと知らせる
-          code,
-          redirect_uri: redirectUri,
-        }),
+      response = await notion.oauth.token({
+        grant_type: 'authorization_code', // Notionに認可codeだと知らせる
+        code,
+        redirect_uri: getEnv('NOTION_REDIRECT_URI'),
+        client_id: getEnv('NOTION_CLIENT_ID'),
+        client_secret: getEnv('NOTION_CLIENT_SECRET'),
       });
     } catch (e) {
-      throw new BadGatewayException(e, 'Notionとの通信に失敗しました。');
+      // APIResponseError: Notion 側 4xx/5xx ／ それ以外: 通信系
+      if (e instanceof APIResponseError) {
+        throw new BadGatewayException('Notion連携に失敗しました。', {
+          cause: e,
+        });
+      }
+      throw new BadGatewayException('Notionへの接続に失敗しました。', {
+        cause: e,
+      });
     }
-
-    if (!response.ok) {
-      // 認可エラー・期限切れ等。設計上は502相当として扱う。
-      throw new BadGatewayException('Notion連携に失敗しました。');
-    }
-
-    // Notionはbearer固定だが念のため型を合わせて使う
-    const body = (await response.json()) as Partial<NotionTokenResponse>;
-
-    // 必須項目の検証（Notion側のエラー対策）
-    if (
-      !body.access_token ||
-      !body.refresh_token ||
-      !body.workspace_id ||
-      !body.workspace_name
-    ) {
+    // resがnullableなのでチェック
+    if (!response.refresh_token || !response.workspace_name) {
       throw new BadGatewayException('Notionからのレスポンスが不正です。');
     }
+
     // NotionTokenResponseを返す
     return {
-      access_token: body.access_token,
-      refresh_token: body.refresh_token,
-      workspace_id: body.workspace_id,
-      workspace_name: body.workspace_name,
+      access_token: response.access_token,
+      refresh_token: response.refresh_token,
+      workspace_id: response.workspace_id,
+      workspace_name: response.workspace_name,
     };
   }
 

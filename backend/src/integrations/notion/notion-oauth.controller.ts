@@ -15,6 +15,7 @@ import { ApiResponse } from '@nestjs/swagger';
 import express from 'express';
 import { JwtAuthGuard } from '../../auth/jwt.guard';
 import { GetUserId } from '../../common/decorators/get-userid.decorator';
+import { NotionAuthStartResponse } from './dto/notion-auth-start.response';
 import { NotionStatusResponse } from './dto/notion-status.response';
 import {
   NotionOAuthService,
@@ -41,11 +42,12 @@ export class NotionOAuthController {
    */
   @UseGuards(JwtAuthGuard)
   @Get('auth')
+  @ApiResponse({ status: 200, type: NotionAuthStartResponse })
   startAuth(
     @GetUserId() userId: string,
     @Query('deckId') deckId: string | undefined,
-    @Res() res: express.Response,
-  ) {
+    @Res({ passthrough: true }) res: express.Response,
+  ): NotionAuthStartResponse {
     // deckIdは認可後のフロント遷移先に使うため必須
     if (!deckId) throw new BadRequestException('deckId は必須です。');
 
@@ -63,10 +65,10 @@ export class NotionOAuthController {
     res.cookie(COOKIE_OAUTH_DECK_ID, deckId, cookieOptions);
     res.cookie(COOKIE_OAUTH_USER_ID, userId, cookieOptions);
 
-    // Notion認可画面へ302リダイレクト
+    // Notion認可画面URLを返す（フロントがwindow.location.hrefで遷移する）
     const authorizationUrl =
       this.notionOAuthService.buildAuthorizationUrl(state);
-    return res.redirect(authorizationUrl);
+    return new NotionAuthStartResponse(authorizationUrl);
   }
 
   /**
@@ -132,7 +134,7 @@ export class NotionOAuthController {
     // フロントのimport画面へredirect
     return res.redirect(
       // urlは適当に決めた、フロント作成時に変更
-      `${frontendUrl}/decks/${deckId}/notion-import`,
+      `${frontendUrl}/decks/${deckId}?integration=notion_success`,
     );
   }
 

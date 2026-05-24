@@ -6,12 +6,14 @@ type CardListPageHeaderProps = {
   deckName: string;
   onEditDeck: () => void;
   onCreateCard: () => void;
+  onConnectNotion: () => void;
 };
 
 export default function CardListPageHeader({
   deckName,
   onEditDeck,
   onCreateCard,
+  onConnectNotion,
 }: CardListPageHeaderProps) {
   return (
     <div className="flex items-center justify-between px-8 py-5 border-b border-gray-200">
@@ -27,14 +29,19 @@ export default function CardListPageHeader({
         <h1 className="text-[20px] font-bold text-gray-900">カード一覧</h1>
       </div>
 
-      {/* 右：デッキ編集 + カード追加 */}
+      {/* 右：デッキ編集 + Notion連携 + カード追加 */}
       <div className="flex items-center gap-2">
+        <button onClick={onConnectNotion} className="btn btn-neutral btn-sm">
+          Notion連携
+        </button>
+
         <button
           onClick={onEditDeck}
           className="btn btn-outline btn-primary btn-sm"
         >
           デッキ編集
         </button>
+
         <button onClick={onCreateCard} className="btn btn-primary btn-sm">
           ＋ カード追加
         </button>
