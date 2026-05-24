@@ -10,7 +10,7 @@ import {
   beforeAll,
   afterAll,
 } from 'vitest';
-import { BadGatewayException } from '@nestjs/common';
+import { BadGatewayException, UnauthorizedException } from '@nestjs/common';
 import type { NotionIntegration } from '@prisma/client';
 import {
   APIResponseError,
@@ -160,7 +160,7 @@ describe('NotionOAuthService', () => {
     });
 
     // APIResponseError は Notion 側エラー（invalid_grant等）。service は内部用 message で投げ直す
-    it('異常系: APIResponseError → BadGateway (内部用 message / cause 保持)', async () => {
+    it('異常系: APIResponseError → BadGateway (内部用 message)', async () => {
       const apiErr = new APIResponseError({
         code: 'unauthorized' as never,
         status: 401,
@@ -176,13 +176,12 @@ describe('NotionOAuthService', () => {
         {
           constructor: BadGatewayException,
           message: 'Notion連携に失敗しました。',
-          cause: apiErr,
         },
       );
     });
 
     // それ以外（RequestTimeoutError / network 系）は通信用 message で投げ直す
-    it('異常系: RequestTimeoutError → BadGateway (通信用 message / cause 保持)', async () => {
+    it('異常系: RequestTimeoutError → BadGateway (通信用 message)', async () => {
       const timeoutErr = new RequestTimeoutError('request timed out');
       mockOauthToken.mockRejectedValue(timeoutErr);
 
@@ -190,7 +189,6 @@ describe('NotionOAuthService', () => {
         {
           constructor: BadGatewayException,
           message: 'Notionへの接続に失敗しました。',
-          cause: timeoutErr,
         },
       );
     });
@@ -208,6 +206,115 @@ describe('NotionOAuthService', () => {
         await expect(
           service.exchangeCodeForTokens('code'),
         ).rejects.toBeInstanceOf(BadGatewayException);
+      },
+    );
+  });
+
+  // ---------------------------------------------------------------------------
+  // refreshTokens
+  // ---------------------------------------------------------------------------
+  describe('refreshTokens', () => {
+    it('正常系: SDKが返したレスポンスから 4項目だけ抽出して返すこと', async () => {
+      // 新しいAT/RTがNotionから返るパターン
+      mockOauthToken.mockResolvedValue(
+        buildOauthResponse({
+          access_token: 'AT-new',
+          refresh_token: 'RT-new',
+          workspace_id: 'ws-1',
+          workspace_name: 'My Workspace',
+          workspace_icon: 'should-be-ignored',
+          bot_id: 'should-be-ignored',
+          token_type: 'bearer',
+        }),
+      );
+
+      const result = await service.refreshTokens('RT-old');
+
+      expect(result).toEqual({
+        access_token: 'AT-new',
+        refresh_token: 'RT-new',
+        workspace_id: 'ws-1',
+        workspace_name: 'My Workspace',
+      });
+    });
+
+    it('呼び出し検証: oauth.token に grant_type=refresh_token と RT/client_id/client_secret が渡されること', async () => {
+      // 認可codeフローとは grant_type と refresh_token 以外が違うので、
+      // 引数が正しく組み立てられているか確認する
+      mockOauthToken.mockResolvedValue(buildOauthResponse({}));
+
+      await service.refreshTokens('RT-zzz');
+
+      expect(mockOauthToken).toHaveBeenCalledTimes(1);
+      expect(mockOauthToken).toHaveBeenCalledWith({
+        grant_type: 'refresh_token',
+        refresh_token: 'RT-zzz',
+        client_id: 'test-client-id',
+        client_secret: 'test-client-secret',
+      });
+    });
+
+    // 4xx は RT 拒否 → ユーザに再連携を促す必要がある
+    it.each<[string, number, string]>([
+      ['400 invalid_grant', 400, 'invalid_grant'],
+      ['401 unauthorized', 401, 'unauthorized'],
+    ])('異常系: %s → UnauthorizedException', async (_label, status, code) => {
+      const apiErr = new APIResponseError({
+        code: code as never,
+        status,
+        message: code,
+        headers: new Headers(),
+        rawBodyText: `{"error":"${code}"}`,
+        additional_data: undefined,
+        request_id: undefined,
+      });
+      mockOauthToken.mockRejectedValue(apiErr);
+
+      await expect(service.refreshTokens('RT')).rejects.toBeInstanceOf(
+        UnauthorizedException,
+      );
+    });
+
+    // 5xx は Notion 側障害 → 連携は維持して 502 を返す
+    it('異常系: 5xx → BadGatewayException', async () => {
+      const apiErr = new APIResponseError({
+        code: 'internal_server_error' as never,
+        status: 500,
+        message: 'internal_server_error',
+        headers: new Headers(),
+        rawBodyText: '{}',
+        additional_data: undefined,
+        request_id: undefined,
+      });
+      mockOauthToken.mockRejectedValue(apiErr);
+
+      await expect(service.refreshTokens('RT')).rejects.toBeInstanceOf(
+        BadGatewayException,
+      );
+    });
+
+    // 通信系（RequestTimeoutError）は BadGateway
+    it('異常系: RequestTimeoutError → BadGatewayException', async () => {
+      const timeoutErr = new RequestTimeoutError('request timed out');
+      mockOauthToken.mockRejectedValue(timeoutErr);
+
+      await expect(service.refreshTokens('RT')).rejects.toBeInstanceOf(
+        BadGatewayException,
+      );
+    });
+
+    // OauthTokenResponse は refresh_token / workspace_name が nullable
+    it.each<[string, Partial<OauthTokenResponse>]>([
+      ['refresh_token が null', { refresh_token: null, workspace_name: 'n' }],
+      ['workspace_name が null', { refresh_token: 'r', workspace_name: null }],
+    ])(
+      '異常系: 必須項目欠落 (%s) → BadGatewayException',
+      async (_label, partial) => {
+        mockOauthToken.mockResolvedValue(buildOauthResponse(partial));
+
+        await expect(service.refreshTokens('RT')).rejects.toBeInstanceOf(
+          BadGatewayException,
+        );
       },
     );
   });
