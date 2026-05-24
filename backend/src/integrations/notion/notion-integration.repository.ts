@@ -39,6 +39,32 @@ export class NotionIntegrationRepository {
   }
 
   /**
+   * userId に紐づく AT/RT を「平文」で取得する
+   *
+   * 復号はこの層で行い、上位レイヤから CipherService を意識させない方針。
+   * Notion API を叩くときに使う（AT を Authorization に乗せる、RT で refresh する など）。
+   * 未連携の場合は null を返す。
+   */
+  async findDecryptedByUserId(userId: string): Promise<{
+    accessToken: string;
+    refreshToken: string;
+    workspaceId: string;
+    workspaceName: string;
+  } | null> {
+    const integration = await this.prisma.notionIntegration.findUnique({
+      where: { userId },
+    });
+    if (!integration) return null;
+
+    return {
+      accessToken: this.cipher.decrypt(integration.accessTokenEnc),
+      refreshToken: this.cipher.decrypt(integration.refreshTokenEnc),
+      workspaceId: integration.workspaceId,
+      workspaceName: integration.workspaceName,
+    };
+  }
+
+  /**
    * 同一userIdのレコードをあれば上書き、なければ新規作成する
    *
    * Notion設計上、１ユーザは常に最新の１連携情報のみを持つ。
