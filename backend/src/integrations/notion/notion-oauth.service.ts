@@ -1,8 +1,4 @@
-import {
-  BadGatewayException,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { BadGatewayException, Injectable } from '@nestjs/common';
 import { randomBytes } from 'crypto';
 import { NotionIntegrationRepository } from './notion-integration.repository';
 import { getEnv } from '../../common/functions/get-env';
@@ -11,6 +7,7 @@ import {
   APIResponseError,
   type OauthTokenResponse,
 } from '@notionhq/client';
+import { NotionReauthRequiredException } from './notion.exceptions';
 
 /**
  * Notion OAuth tokenエンドポイントのレスポンス（必要項目のみ）
@@ -106,9 +103,10 @@ export class NotionOAuthService {
     } catch (e) {
       // APIResponseError: Notion 側からの 4xx/5xx 応答
       if (e instanceof APIResponseError) {
-        // 4xx は RT が無効/失効/取消されたケース
+        // 4xx は RT が無効/失効/取消されたケース。
+        // 呼び出し元（api.client.refreshAccessToken）で catch されintegrationが削除される
         if (e.status >= 400 && e.status < 500) {
-          throw new UnauthorizedException(
+          throw new NotionReauthRequiredException(
             'Notion連携が無効になりました。再連携してください。',
           );
         }
