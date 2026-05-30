@@ -180,6 +180,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/integrations/notion/auth": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["NotionOAuthController_startAuth"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/integrations/notion/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["NotionOAuthController_callback"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/integrations/notion/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["NotionOAuthController_getStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/integrations/notion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["NotionOAuthController_deleteIntegration"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -360,6 +424,25 @@ export interface components {
              */
             version: number;
             preview?: components["schemas"]["ReviewPreviewResponse"];
+        };
+        NotionAuthStartResponse: {
+            /**
+             * @description Notion認可画面のURL。フロントはこのURLへブラウザ遷移する。
+             * @example https://api.notion.com/v1/oauth/authorize?client_id=...&response_type=code&owner=user&redirect_uri=...&state=...
+             */
+            url: string;
+        };
+        NotionStatusResponse: {
+            /**
+             * @description Notion連携済みかどうか
+             * @example true
+             */
+            connected: boolean;
+            /**
+             * @description 連携先のNotionワークスペース名（connected=trueのみ）
+             * @example My Workspace
+             */
+            workspaceName?: string;
         };
     };
     responses: never;
@@ -684,6 +767,78 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["CardReviewResponse"];
                 };
+            };
+        };
+    };
+    NotionOAuthController_startAuth: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotionAuthStartResponse"];
+                };
+            };
+        };
+    };
+    NotionOAuthController_callback: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    NotionOAuthController_getStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotionStatusResponse"];
+                };
+            };
+        };
+    };
+    NotionOAuthController_deleteIntegration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
