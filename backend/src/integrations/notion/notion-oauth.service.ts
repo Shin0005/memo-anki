@@ -1,4 +1,8 @@
-import { BadGatewayException, Injectable } from '@nestjs/common';
+import {
+  BadGatewayException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { randomBytes } from 'crypto';
 import { NotionIntegrationRepository } from './notion-integration.repository';
 import { getEnv } from '../../common/functions/get-env';
@@ -63,13 +67,9 @@ export class NotionOAuthService {
     } catch (e) {
       // APIResponseError: Notion 側 4xx/5xx ／ それ以外: 通信系
       if (e instanceof APIResponseError) {
-        throw new BadGatewayException('Notion連携に失敗しました。', {
-          cause: e,
-        });
+        throw new BadGatewayException('Notion連携に失敗しました。');
       }
-      throw new BadGatewayException('Notionへの接続に失敗しました。', {
-        cause: e,
-      });
+      throw new BadGatewayException('Notionへの接続に失敗しました。');
     }
     // resがnullableなのでチェック
     if (!response.refresh_token || !response.workspace_name) {
@@ -77,6 +77,53 @@ export class NotionOAuthService {
     }
 
     // NotionTokenResponseを返す
+    return {
+      access_token: response.access_token,
+      refresh_token: response.refresh_token,
+      workspace_id: response.workspace_id,
+      workspace_name: response.workspace_name,
+    };
+  }
+
+  /**
+   * RTを使ってAT/RTを再発行する
+   *
+   * exchangeCodeForTokensがベース
+   * @param refreshToken DB から取り出した平文 RT
+   * @returns 新しい AT/RT を含む NotionTokenResponse
+   */
+  async refreshTokens(refreshToken: string): Promise<NotionTokenResponse> {
+    const notion = new Client();
+
+    let response: OauthTokenResponse;
+    try {
+      response = await notion.oauth.token({
+        grant_type: 'refresh_token', // Notionに「RTからAT/RTを再発行」と知らせる
+        refresh_token: refreshToken,
+        client_id: getEnv('NOTION_CLIENT_ID'),
+        client_secret: getEnv('NOTION_CLIENT_SECRET'),
+      });
+    } catch (e) {
+      // APIResponseError: Notion 側からの 4xx/5xx 応答
+      if (e instanceof APIResponseError) {
+        // 4xx は RT が無効/失効/取消されたケース
+        if (e.status >= 400 && e.status < 500) {
+          throw new UnauthorizedException(
+            'Notion連携が無効になりました。再連携してください。',
+          );
+        }
+        // Notion側の障害（とりあえず502）
+        throw new BadGatewayException('Notion連携の更新に失敗しました。');
+      }
+      // RequestTimeoutError 等の通信系
+      throw new BadGatewayException('Notionへの接続に失敗しました。');
+    }
+
+    // resがnullableなのでチェック
+    if (!response.refresh_token || !response.workspace_name) {
+      throw new BadGatewayException('Notionからのレスポンスが不正です。');
+    }
+
     return {
       access_token: response.access_token,
       refresh_token: response.refresh_token,
