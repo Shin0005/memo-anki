@@ -10,7 +10,7 @@ import {
   beforeAll,
   afterAll,
 } from 'vitest';
-import { BadGatewayException, UnauthorizedException } from '@nestjs/common';
+import { BadGatewayException } from '@nestjs/common';
 import type { NotionIntegration } from '@prisma/client';
 import {
   APIResponseError,
@@ -20,6 +20,7 @@ import {
 
 import { NotionOAuthService } from './notion-oauth.service';
 import { NotionIntegrationRepository } from './notion-integration.repository';
+import { NotionReauthRequiredException } from './notion.exceptions';
 
 /**
  * @notionhq/client (Notion 公式 SDK) のモック
@@ -258,22 +259,25 @@ describe('NotionOAuthService', () => {
     it.each<[string, number, string]>([
       ['400 invalid_grant', 400, 'invalid_grant'],
       ['401 unauthorized', 401, 'unauthorized'],
-    ])('異常系: %s → UnauthorizedException', async (_label, status, code) => {
-      const apiErr = new APIResponseError({
-        code: code as never,
-        status,
-        message: code,
-        headers: new Headers(),
-        rawBodyText: `{"error":"${code}"}`,
-        additional_data: undefined,
-        request_id: undefined,
-      });
-      mockOauthToken.mockRejectedValue(apiErr);
+    ])(
+      '異常系: %s → NotionReauthRequiredException',
+      async (_label, status, code) => {
+        const apiErr = new APIResponseError({
+          code: code as never,
+          status,
+          message: code,
+          headers: new Headers(),
+          rawBodyText: `{"error":"${code}"}`,
+          additional_data: undefined,
+          request_id: undefined,
+        });
+        mockOauthToken.mockRejectedValue(apiErr);
 
-      await expect(service.refreshTokens('RT')).rejects.toBeInstanceOf(
-        UnauthorizedException,
-      );
-    });
+        await expect(service.refreshTokens('RT')).rejects.toBeInstanceOf(
+          NotionReauthRequiredException,
+        );
+      },
+    );
 
     // 5xx は Notion 側障害 → 連携は維持して 502 を返す
     it('異常系: 5xx → BadGatewayException', async () => {
