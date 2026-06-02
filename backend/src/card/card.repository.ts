@@ -2,7 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ICardRepository } from './card.repository.interface';
 import { Card, Prisma } from '@prisma/client';
-import { CardNotFoundException } from '../common/exceptions/domain.exceptions';
+import {
+  CardNotFoundException,
+  DeckNotFoundException,
+} from '../common/exceptions/domain.exceptions';
+import { CardType } from '@memo-anki/shared';
 
 // userIdをwhereに含めることで一貫してrepositoryでの認可の強化を推進している。
 @Injectable()
@@ -27,6 +31,43 @@ export class CardRepository implements ICardRepository {
   async findCards(userId: string): Promise<Card[]> {
     return await this.prismaService.card.findMany({
       where: { deck: { userId } },
+    });
+  }
+
+  /**
+   * 複数Noteカードを一括 INSERT する
+   *
+   * - チャンク分割は小規模では過剰と判断し使用しない。
+   * - Notionからのデータ取得はTXにより中途半端でインポートされるのを防ぐ
+   * - 純粋なカードのロジックとして実装。（Notion等の外部サービスは知らない）
+   * @returns 作成されたカード総数
+   */
+  async createManyNote(input: {
+    userId: string;
+    deckId: bigint;
+    rawNotes: { name: string; content: string | null }[];
+  }): Promise<number> {
+    return this.prismaService.$transaction(async (tx) => {
+      // 指定されたdeckがuserのものか確認
+      // tx内であり、DeckServiceはtxを受け付けない仕様のため直呼びしている。
+      const deck = await tx.deck.findFirst({
+        where: { id: input.deckId, userId: input.userId },
+        select: { id: true }, // idだけ取得
+      });
+      if (!deck) {
+        throw new DeckNotFoundException(String(input.deckId));
+      }
+
+      // 受け取ったデータをCardsにする。
+      const data = input.rawNotes.map((rawNote) => ({
+        deckId: input.deckId,
+        name: rawNote.name,
+        type: CardType.NOTE,
+        content: rawNote.content,
+      }));
+      // 一括INSERT
+      const result = await tx.card.createMany({ data });
+      return result.count;
     });
   }
 

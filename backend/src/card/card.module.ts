@@ -17,6 +17,6 @@ import { ReviewService } from './review.service';
       useClass: CardRepository, // 実装
     },
   ],
-  exports: [CardService],
+  exports: [CardService, 'ICardRepository'],
 })
 export class CardModule {}
