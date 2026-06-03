@@ -178,19 +178,14 @@ describe('Notion OAuth (Integration)', () => {
     await app.close();
   });
 
-  // ===========================================================================
-  // A. GET /integrations/notion/auth
-  // ===========================================================================
   describe('GET /integrations/notion/auth', () => {
     it('A-1: 未認証 → 401', async () => {
-      // [試験項目: 未認証拒否]
       await request(app.getHttpServer())
         .get('/integrations/notion/auth?deckId=10')
         .expect(HttpStatus.UNAUTHORIZED);
     });
 
     it('A-2: deckId 未指定 → 400', async () => {
-      // [試験項目: deckId 必須]
       await request(app.getHttpServer())
         .get('/integrations/notion/auth')
         .set('Authorization', `Bearer ${token}`)
@@ -198,7 +193,6 @@ describe('Notion OAuth (Integration)', () => {
     });
 
     it('A-3: 正常系 → 200 で Notion authorize URL を JSON で返す', async () => {
-      // [試験項目: 認可URL組立]
       // SDK 化に伴い、controller はサーバー側でリダイレクトせず URL を JSON で返す仕様に変更された。
       // フロント側で window.location.href = url の形で遷移する。
       const res = await request(app.getHttpServer())
@@ -224,7 +218,6 @@ describe('Notion OAuth (Integration)', () => {
     });
 
     it('A-4: 正常系 → Set-Cookie 3つに HttpOnly / SameSite=Lax / Max-Age=300', async () => {
-      // [試験項目: Cookie 属性]
       // 200 応答でも Set-Cookie は付与される（passthrough: true で res.cookie を使用）
       const res = await request(app.getHttpServer())
         .get('/integrations/notion/auth?deckId=99')
@@ -254,9 +247,6 @@ describe('Notion OAuth (Integration)', () => {
     });
   });
 
-  // ===========================================================================
-  // B. GET /integrations/notion/callback (主役)
-  // ===========================================================================
   describe('GET /integrations/notion/callback', () => {
     const state = 'STATE-FIXED-VALUE';
     const deckId = '88';
@@ -302,7 +292,6 @@ describe('Notion OAuth (Integration)', () => {
     };
 
     it('B-1: 正常系 → DB に暗号化保存、Cookie3つclear、import URL へ redirect', async () => {
-      // [試験項目: callback 正常系 全パス]
       mockOauthToken.mockResolvedValue(buildOauthResponse());
 
       const res = await request(app.getHttpServer())
@@ -348,7 +337,6 @@ describe('Notion OAuth (Integration)', () => {
     });
 
     it('B-2: 既存レコードの再連携 → upsert で上書き、件数増えない', async () => {
-      // [試験項目: callback 上書き]
       // 別 workspace での既存連携を置いてから callback
       await prisma.notionIntegration.create({
         data: {
@@ -381,7 +369,6 @@ describe('Notion OAuth (Integration)', () => {
     });
 
     it('B-3: state 不一致 → notion_invalid redirect、Cookie clear、SDK 呼ばれない', async () => {
-      // [試験項目: state 不一致]
       mockOauthToken.mockResolvedValue(buildOauthResponse());
 
       const res = await request(app.getHttpServer())
@@ -401,7 +388,6 @@ describe('Notion OAuth (Integration)', () => {
     });
 
     it('B-4: Notion API が 4xx (APIResponseError) → notion_failed redirect、Cookie clear、DB 変化なし', async () => {
-      // [試験項目: Notion 4xx]
       // SDK 化後は service が APIResponseError を捕捉して BadGatewayException に詰め替える。
       // それを NotionOAuthExceptionFilter が拾って notion_failed に倒す流れ。
       mockOauthToken.mockRejectedValue(
@@ -423,7 +409,6 @@ describe('Notion OAuth (Integration)', () => {
     });
 
     it('B-4b: 通信エラー (RequestTimeoutError) → notion_failed redirect、Cookie clear、DB 変化なし', async () => {
-      // [試験項目: Notion 通信失敗]
       // SDK は通信失敗を RequestTimeoutError として返す。service 側は接続用の
       // BadGatewayException に詰め替える。filter の出力は同じく notion_failed。
       mockOauthToken.mockRejectedValue(
@@ -445,7 +430,6 @@ describe('Notion OAuth (Integration)', () => {
     });
 
     it('B-5: Notion レスポンス必須項目欠落 → notion_failed redirect', async () => {
-      // [試験項目: Notion レスポンス不正]
       // SDK 型上 refresh_token / workspace_name は nullable。null で来た時 service が
       // BadGatewayException を投げ、filter が notion_failed に倒す。
       mockOauthToken.mockResolvedValue(
@@ -469,7 +453,6 @@ describe('Notion OAuth (Integration)', () => {
     });
 
     it('B-6: error=access_denied & state一致 → notion_cancelled redirect、Cookie clear、SDK 呼ばれない', async () => {
-      // [試験項目: access_denied 分岐]
       // 直近で error 分岐にも clearOAuthCookies を追加した変更のリグレッション検出
       mockOauthToken.mockResolvedValue(buildOauthResponse());
 
@@ -489,7 +472,6 @@ describe('Notion OAuth (Integration)', () => {
     });
 
     it('B-7: code 欠落 → notion_invalid redirect', async () => {
-      // [試験項目: code 欠落]
       mockOauthToken.mockResolvedValue(buildOauthResponse());
 
       const res = await request(app.getHttpServer())
@@ -504,7 +486,6 @@ describe('Notion OAuth (Integration)', () => {
     });
 
     it('B-8: userId Cookie 欠落 → notion_invalid redirect', async () => {
-      // [試験項目: userId Cookie 欠落]
       mockOauthToken.mockResolvedValue(buildOauthResponse());
 
       const res = await request(app.getHttpServer())
@@ -519,7 +500,6 @@ describe('Notion OAuth (Integration)', () => {
     });
 
     it('B-9: deckId Cookie 欠落 → filter fallback で /decks/decks redirect', async () => {
-      // [試験項目: deckId Cookie 欠落 + filter fallback]
       // filter は deckId 不在時に '/decks' を埋め込むため URL は
       //   /decks/${'/decks'}?... = /decks//decks?...
       // となる（ダブルスラッシュは現状仕様。気になるなら filter 改修で fallback を空文字に）
@@ -537,19 +517,14 @@ describe('Notion OAuth (Integration)', () => {
     });
   });
 
-  // ===========================================================================
-  // C. GET /integrations/notion/status
-  // ===========================================================================
   describe('GET /integrations/notion/status', () => {
     it('C-1: 未認証 → 401', async () => {
-      // [試験項目: status 未認証]
       await request(app.getHttpServer())
         .get('/integrations/notion/status')
         .expect(HttpStatus.UNAUTHORIZED);
     });
 
     it('C-2: 未連携 → { connected: false }、workspaceName 含まない', async () => {
-      // [試験項目: status 未連携]
       const res = await request(app.getHttpServer())
         .get('/integrations/notion/status')
         .set('Authorization', `Bearer ${token}`)
@@ -559,7 +534,6 @@ describe('Notion OAuth (Integration)', () => {
     });
 
     it('C-3: 連携済 → { connected: true, workspaceName }', async () => {
-      // [試験項目: status 連携済]
       await prisma.notionIntegration.create({
         data: {
           userId: user.id,
@@ -582,19 +556,14 @@ describe('Notion OAuth (Integration)', () => {
     });
   });
 
-  // ===========================================================================
-  // D. DELETE /integrations/notion
-  // ===========================================================================
   describe('DELETE /integrations/notion', () => {
     it('D-1: 未認証 → 401', async () => {
-      // [試験項目: 削除 未認証]
       await request(app.getHttpServer())
         .delete('/integrations/notion')
         .expect(HttpStatus.UNAUTHORIZED);
     });
 
     it('D-2: 連携済 → 204、DBから消える', async () => {
-      // [試験項目: 削除 成功]
       await prisma.notionIntegration.create({
         data: {
           userId: user.id,
@@ -617,7 +586,6 @@ describe('Notion OAuth (Integration)', () => {
     });
 
     it('D-3: 未連携でも 204（冪等）', async () => {
-      // [試験項目: 削除 冪等]
       await request(app.getHttpServer())
         .delete('/integrations/notion')
         .set('Authorization', `Bearer ${token}`)
