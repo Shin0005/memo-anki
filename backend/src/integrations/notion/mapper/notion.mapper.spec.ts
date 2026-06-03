@@ -6,7 +6,7 @@ import type {
 } from '@notionhq/client/build/src/api-endpoints';
 
 import { NotionMapper } from './notion.mapper';
-import { NotionUnsupportedColumnException } from './notion.exceptions';
+import { NotionUnsupportedColumnException } from '../notion.exceptions';
 
 /** テスト用ヘルパ */
 

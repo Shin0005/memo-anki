@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import type { NotionDatabaseSummary } from '../notion.mapper';
+import type { NotionDatabaseSummary } from '../../mapper/notion.mapper';
 
 /**
  * Notion連携で選択されたdatabaseを1件返却

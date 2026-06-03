@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import type { NotionDatabaseDetail } from '../notion.mapper';
+import type { NotionDatabaseDetail } from '../../mapper/notion.mapper';
 
 /**
  * 必要部分だけ取り出したNotion DBのカラム情報

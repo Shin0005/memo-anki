@@ -19,9 +19,9 @@ import type {
   QueryDataSourceParameters,
   QueryDataSourceResponse,
 } from '@notionhq/client/build/src/api-endpoints';
-import { NotionIntegrationRepository } from './notion-integration.repository';
-import { NotionOAuthService } from './notion-oauth.service';
-import { NotionReauthRequiredException } from './notion.exceptions';
+import { NotionIntegrationRepository } from '../notion-integration.repository';
+import { NotionOAuthService } from '../oauth/notion-oauth.service';
+import { NotionReauthRequiredException } from '../notion.exceptions';
 
 /**
  * Notion API クライアント（SDK ラッパー）
