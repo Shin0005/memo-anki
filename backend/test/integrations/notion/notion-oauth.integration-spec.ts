@@ -6,13 +6,13 @@
 /**
  * Notion OAuth フロー 結合試験
  *
- *  - 外部 fetch (Notion API) は vi.stubGlobal で mock
+ *  - 外部 Notion 通信は @notionhq/client (SDK) の `Client.oauth.token` を vi.mock で差し替え
  *  - DB は実 Prisma、user は事前 upsert、integration は beforeEach で deleteMany
  *  - JWT は実 JwtService で発行
  *
  * 単体試験では拾いきれない、層間の副作用（暗号化DB書込、Set-Cookie、filter経由のredirect）
- * を中心に検証する。Notion 側の仕様変化に強いように、`vi.stubGlobal` で
- * Notion API のレスポンスをテストごとに差し替えられる構成とする。
+ * を中心に検証する。Notion SDK のレスポンスはテスト毎に mockResolvedValue / mockRejectedValue
+ * で差し替えられる構成とする。
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
@@ -25,10 +25,14 @@ import {
   beforeAll,
   afterAll,
   beforeEach,
-  afterEach,
   vi,
 } from 'vitest';
 import cookieParser from 'cookie-parser';
+import {
+  APIResponseError,
+  RequestTimeoutError,
+  type OauthTokenResponse,
+} from '@notionhq/client';
 
 // controller.ts は import 時に `process.env.FRONTEND_URL` を定数に固定する。
 // vi.hoisted は import 文より先に実行されるため、ここで Notion 関連 env を仕込んでおく。
@@ -45,6 +49,26 @@ vi.hoisted(() => {
 // JWT_SECRET / DATABASE_URL を .env から読み込む（vi.hoisted の後・他 import の前）
 import 'dotenv/config';
 
+// Notion SDK Client.oauth.token を vi.hoisted で先に作って差し替え
+// APIResponseError 等のエラークラスは instanceof 判定に使うので実物を残す
+const { mockOauthToken } = vi.hoisted(() => ({
+  mockOauthToken: vi.fn(),
+}));
+
+vi.mock('@notionhq/client', async () => {
+  const actual =
+    await vi.importActual<typeof import('@notionhq/client')>(
+      '@notionhq/client',
+    );
+  return {
+    ...actual,
+    // Client は service 内で new されるので class で差し替える
+    Client: class {
+      oauth = { token: mockOauthToken };
+    },
+  };
+});
+
 import { AppModule } from '../../../src/app.module';
 import { PrismaService } from '../../../src/prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
@@ -58,6 +82,38 @@ import {
 } from '../../../src/integrations/notion/notion-oauth.cookies';
 
 const FRONTEND_URL = 'http://localhost:3000';
+
+/**
+ * SDK の OauthTokenResponse は workspace_icon / bot_id / owner / token_type 等の必須項目を
+ * 多く含むが、service 側ではこれら 4 項目しか参照しないため、テストでは Partial を
+ * OauthTokenResponse としてキャストして渡す。
+ */
+const buildOauthResponse = (
+  overrides: Partial<OauthTokenResponse> = {},
+): OauthTokenResponse =>
+  ({
+    access_token: 'AT-plain-xxx',
+    refresh_token: 'RT-plain-yyy',
+    workspace_id: 'ws-1',
+    workspace_name: 'My Workspace',
+    // 保存対象外
+    workspace_icon: 'ignored',
+    bot_id: 'ignored',
+    token_type: 'bearer',
+    ...overrides,
+  }) as OauthTokenResponse;
+
+/** Notion 側 4xx/5xx を再現する APIResponseError を作る */
+const buildApiResponseError = (status: number, code: string) =>
+  new APIResponseError({
+    code: code as never,
+    status,
+    message: code,
+    headers: new Headers(),
+    rawBodyText: `{"error":"${code}"}`,
+    additional_data: undefined,
+    request_id: undefined,
+  });
 
 describe('Notion OAuth (Integration)', () => {
   let app: INestApplication;
@@ -74,37 +130,12 @@ describe('Notion OAuth (Integration)', () => {
   };
   let token: string;
 
-  /** Notion /v1/oauth/token の正常レスポンス body */
+  /** Notion oauth.token の正常レスポンス body（参照しやすいよう値を保持） */
   const notionOk = {
     access_token: 'AT-plain-xxx',
     refresh_token: 'RT-plain-yyy',
     workspace_id: 'ws-1',
     workspace_name: 'My Workspace',
-    // 保存対象外
-    workspace_icon: 'ignored',
-    bot_id: 'ignored',
-    token_type: 'bearer',
-  };
-
-  /**
-   * fetch を stub するヘルパ
-   *  - Notion 以外の URL に来た場合は例外を投げて「想定外の外部通信」を検出する
-   *  - 返却 status / body をテスト毎に切り替え可能
-   */
-  const stubFetch = (status: number, body: unknown) => {
-    const fn = vi.fn((input: unknown) => {
-      const url = typeof input === 'string' ? input : (input as URL).toString();
-      if (!url.startsWith('https://api.notion.com/')) {
-        throw new Error(`Unexpected fetch URL: ${url}`);
-      }
-      return {
-        ok: status >= 200 && status < 300,
-        status,
-        json: () => body,
-      } as unknown as Response;
-    });
-    vi.stubGlobal('fetch', fn);
-    return fn;
   };
 
   beforeAll(async () => {
@@ -134,13 +165,10 @@ describe('Notion OAuth (Integration)', () => {
   });
 
   beforeEach(async () => {
+    // SDK モックを毎回リセット（前テストの mockResolvedValue を引きずらない）
+    mockOauthToken.mockReset();
     // integration テーブルだけ毎回掃除（user は残す）
     await prisma.notionIntegration.deleteMany({ where: { userId: user.id } });
-  });
-
-  afterEach(() => {
-    // fetch の差し替えを必ず元に戻す
-    vi.unstubAllGlobals();
   });
 
   afterAll(async () => {
@@ -169,15 +197,18 @@ describe('Notion OAuth (Integration)', () => {
         .expect(HttpStatus.BAD_REQUEST);
     });
 
-    it('A-3: 正常系 → 302で Notion authorize URL へ', async () => {
+    it('A-3: 正常系 → 200 で Notion authorize URL を JSON で返す', async () => {
       // [試験項目: 認可URL組立]
+      // SDK 化に伴い、controller はサーバー側でリダイレクトせず URL を JSON で返す仕様に変更された。
+      // フロント側で window.location.href = url の形で遷移する。
       const res = await request(app.getHttpServer())
         .get('/integrations/notion/auth?deckId=99')
         .set('Authorization', `Bearer ${token}`)
-        .expect(HttpStatus.FOUND);
+        .expect(HttpStatus.OK);
 
-      const location = res.headers['location'];
-      const url = new URL(location);
+      // レスポンス body は { url: string } 形式
+      expect(typeof res.body.url).toBe('string');
+      const url = new URL(res.body.url as string);
       // 設計書 §3.1 の必須5パラメータ
       expect(url.origin + url.pathname).toBe(
         'https://api.notion.com/v1/oauth/authorize',
@@ -194,10 +225,11 @@ describe('Notion OAuth (Integration)', () => {
 
     it('A-4: 正常系 → Set-Cookie 3つに HttpOnly / SameSite=Lax / Max-Age=300', async () => {
       // [試験項目: Cookie 属性]
+      // 200 応答でも Set-Cookie は付与される（passthrough: true で res.cookie を使用）
       const res = await request(app.getHttpServer())
         .get('/integrations/notion/auth?deckId=99')
         .set('Authorization', `Bearer ${token}`)
-        .expect(HttpStatus.FOUND);
+        .expect(HttpStatus.OK);
 
       const raw = res.headers['set-cookie'];
       const arr: string[] = Array.isArray(raw) ? raw : raw ? [raw] : [];
@@ -271,16 +303,16 @@ describe('Notion OAuth (Integration)', () => {
 
     it('B-1: 正常系 → DB に暗号化保存、Cookie3つclear、import URL へ redirect', async () => {
       // [試験項目: callback 正常系 全パス]
-      const fetchMock = stubFetch(200, notionOk);
+      mockOauthToken.mockResolvedValue(buildOauthResponse());
 
       const res = await request(app.getHttpServer())
         .get(`/integrations/notion/callback?code=CODE&state=${state}`)
         .set('Cookie', cookieHeader())
         .expect(HttpStatus.FOUND);
 
-      // redirect 先
+      // redirect 先（成功時は ?integration=notion_success）
       expect(res.headers['location']).toBe(
-        `${FRONTEND_URL}/decks/${deckId}/notion-import`,
+        `${FRONTEND_URL}/decks/${deckId}?integration=notion_success`,
       );
 
       // Cookie 3 つ clear
@@ -303,23 +335,15 @@ describe('Notion OAuth (Integration)', () => {
         notionOk.refresh_token,
       );
 
-      // fetch が 1 回、仕様通りのリクエストで呼ばれた
-      expect(fetchMock).toHaveBeenCalledTimes(1);
-      const [url, init] = fetchMock.mock.calls[0] as unknown as [
-        string,
-        RequestInit,
-      ];
-      expect(url).toBe('https://api.notion.com/v1/oauth/token');
-      const expectedBasic = Buffer.from(
-        'test-client-id:test-client-secret',
-      ).toString('base64');
-      expect((init.headers as Record<string, string>)['Authorization']).toBe(
-        `Basic ${expectedBasic}`,
-      );
-      expect(JSON.parse(init.body as string)).toEqual({
+      // SDK の oauth.token が 1 回、仕様通りの引数で呼ばれた
+      // （URL や Basic 認証の組み立ては SDK 側の責務なので、ここでは引数のみ検証）
+      expect(mockOauthToken).toHaveBeenCalledTimes(1);
+      expect(mockOauthToken).toHaveBeenCalledWith({
         grant_type: 'authorization_code',
         code: 'CODE',
         redirect_uri: 'http://localhost:3001/api/integrations/notion/callback',
+        client_id: 'test-client-id',
+        client_secret: 'test-client-secret',
       });
     });
 
@@ -336,7 +360,7 @@ describe('Notion OAuth (Integration)', () => {
         },
       });
 
-      stubFetch(200, notionOk);
+      mockOauthToken.mockResolvedValue(buildOauthResponse());
 
       await request(app.getHttpServer())
         .get(`/integrations/notion/callback?code=CODE&state=${state}`)
@@ -356,9 +380,9 @@ describe('Notion OAuth (Integration)', () => {
       );
     });
 
-    it('B-3: state 不一致 → notion_invalid redirect、Cookie clear、fetch 呼ばれない', async () => {
+    it('B-3: state 不一致 → notion_invalid redirect、Cookie clear、SDK 呼ばれない', async () => {
       // [試験項目: state 不一致]
-      const fetchMock = stubFetch(200, notionOk);
+      mockOauthToken.mockResolvedValue(buildOauthResponse());
 
       const res = await request(app.getHttpServer())
         .get(`/integrations/notion/callback?code=CODE&state=DIFFERENT`)
@@ -369,15 +393,42 @@ describe('Notion OAuth (Integration)', () => {
         `${FRONTEND_URL}/decks/${deckId}?integration=notion_invalid`,
       );
       expectAllCookiesCleared(res.headers['set-cookie']);
-      expect(fetchMock).not.toHaveBeenCalled();
+      // state 検証で弾かれるので SDK までは到達しない
+      expect(mockOauthToken).not.toHaveBeenCalled();
       expect(
         await prisma.notionIntegration.count({ where: { userId: user.id } }),
       ).toBe(0);
     });
 
-    it('B-4: Notion API が 400 → notion_failed redirect、Cookie clear、DB 変化なし', async () => {
+    it('B-4: Notion API が 4xx (APIResponseError) → notion_failed redirect、Cookie clear、DB 変化なし', async () => {
       // [試験項目: Notion 4xx]
-      stubFetch(400, { error: 'invalid_grant' });
+      // SDK 化後は service が APIResponseError を捕捉して BadGatewayException に詰め替える。
+      // それを NotionOAuthExceptionFilter が拾って notion_failed に倒す流れ。
+      mockOauthToken.mockRejectedValue(
+        buildApiResponseError(400, 'invalid_grant'),
+      );
+
+      const res = await request(app.getHttpServer())
+        .get(`/integrations/notion/callback?code=CODE&state=${state}`)
+        .set('Cookie', cookieHeader())
+        .expect(HttpStatus.FOUND);
+
+      expect(res.headers['location']).toBe(
+        `${FRONTEND_URL}/decks/${deckId}?integration=notion_failed`,
+      );
+      expectAllCookiesCleared(res.headers['set-cookie']);
+      expect(
+        await prisma.notionIntegration.count({ where: { userId: user.id } }),
+      ).toBe(0);
+    });
+
+    it('B-4b: 通信エラー (RequestTimeoutError) → notion_failed redirect、Cookie clear、DB 変化なし', async () => {
+      // [試験項目: Notion 通信失敗]
+      // SDK は通信失敗を RequestTimeoutError として返す。service 側は接続用の
+      // BadGatewayException に詰め替える。filter の出力は同じく notion_failed。
+      mockOauthToken.mockRejectedValue(
+        new RequestTimeoutError('request timed out'),
+      );
 
       const res = await request(app.getHttpServer())
         .get(`/integrations/notion/callback?code=CODE&state=${state}`)
@@ -395,12 +446,13 @@ describe('Notion OAuth (Integration)', () => {
 
     it('B-5: Notion レスポンス必須項目欠落 → notion_failed redirect', async () => {
       // [試験項目: Notion レスポンス不正]
-      // refresh_token が欠けているケース
-      stubFetch(200, {
-        access_token: 'a',
-        workspace_id: 'w',
-        workspace_name: 'n',
-      });
+      // SDK 型上 refresh_token / workspace_name は nullable。null で来た時 service が
+      // BadGatewayException を投げ、filter が notion_failed に倒す。
+      mockOauthToken.mockResolvedValue(
+        buildOauthResponse({
+          refresh_token: null,
+        }),
+      );
 
       const res = await request(app.getHttpServer())
         .get(`/integrations/notion/callback?code=CODE&state=${state}`)
@@ -416,10 +468,10 @@ describe('Notion OAuth (Integration)', () => {
       ).toBe(0);
     });
 
-    it('B-6: error=access_denied & state一致 → notion_cancelled redirect、Cookie clear、fetch 呼ばれない', async () => {
+    it('B-6: error=access_denied & state一致 → notion_cancelled redirect、Cookie clear、SDK 呼ばれない', async () => {
       // [試験項目: access_denied 分岐]
       // 直近で error 分岐にも clearOAuthCookies を追加した変更のリグレッション検出
-      const fetchMock = stubFetch(200, notionOk);
+      mockOauthToken.mockResolvedValue(buildOauthResponse());
 
       const res = await request(app.getHttpServer())
         .get(`/integrations/notion/callback?state=${state}&error=access_denied`)
@@ -430,7 +482,7 @@ describe('Notion OAuth (Integration)', () => {
         `${FRONTEND_URL}/decks/${deckId}?integration=notion_cancelled`,
       );
       expectAllCookiesCleared(res.headers['set-cookie']);
-      expect(fetchMock).not.toHaveBeenCalled();
+      expect(mockOauthToken).not.toHaveBeenCalled();
       expect(
         await prisma.notionIntegration.count({ where: { userId: user.id } }),
       ).toBe(0);
@@ -438,7 +490,7 @@ describe('Notion OAuth (Integration)', () => {
 
     it('B-7: code 欠落 → notion_invalid redirect', async () => {
       // [試験項目: code 欠落]
-      stubFetch(200, notionOk);
+      mockOauthToken.mockResolvedValue(buildOauthResponse());
 
       const res = await request(app.getHttpServer())
         .get(`/integrations/notion/callback?state=${state}`)
@@ -453,7 +505,7 @@ describe('Notion OAuth (Integration)', () => {
 
     it('B-8: userId Cookie 欠落 → notion_invalid redirect', async () => {
       // [試験項目: userId Cookie 欠落]
-      stubFetch(200, notionOk);
+      mockOauthToken.mockResolvedValue(buildOauthResponse());
 
       const res = await request(app.getHttpServer())
         .get(`/integrations/notion/callback?code=CODE&state=${state}`)
@@ -471,7 +523,7 @@ describe('Notion OAuth (Integration)', () => {
       // filter は deckId 不在時に '/decks' を埋め込むため URL は
       //   /decks/${'/decks'}?... = /decks//decks?...
       // となる（ダブルスラッシュは現状仕様。気になるなら filter 改修で fallback を空文字に）
-      stubFetch(200, notionOk);
+      mockOauthToken.mockResolvedValue(buildOauthResponse());
 
       const res = await request(app.getHttpServer())
         .get(`/integrations/notion/callback?code=CODE&state=${state}`)
