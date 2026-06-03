@@ -8,8 +8,8 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiParam, ApiResponse } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../../auth/jwt.guard';
-import { GetUserId } from '../../common/decorators/get-userid.decorator';
+import { JwtAuthGuard } from '../../../auth/jwt.guard';
+import { GetUserId } from '../../../common/decorators/get-userid.decorator';
 import { NotionDataService } from './notion-data.service';
 import { NotionDatabaseListResponse } from './dto/notion-database.response';
 import { NotionColumnListResponse } from './dto/notion-column.response';

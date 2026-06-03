@@ -4,8 +4,8 @@ import type {
   PageObjectResponse,
   RichTextItemResponse,
 } from '@notionhq/client/build/src/api-endpoints';
-import type { CreateCardDto } from '../../card/card.service';
-import { NotionUnsupportedColumnException } from './notion.exceptions';
+import type { CreateCardDto } from '../../../card/card.service';
+import { NotionUnsupportedColumnException } from '../notion.exceptions';
 
 /**
  * フロントの DB 選択リストで使う最小情報

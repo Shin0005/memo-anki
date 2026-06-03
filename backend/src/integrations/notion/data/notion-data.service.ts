@@ -4,8 +4,8 @@ import {
   NotionDatabaseDetail,
   NotionDatabaseSummary,
   NotionMapper,
-} from './notion.mapper';
-import { ICardRepository } from '../../card/card.repository.interface';
+} from '../mapper/notion.mapper';
+import { ICardRepository } from '../../../card/card.repository.interface';
 
 /**
  * Notion 連携データ取得サービス

@@ -3,13 +3,13 @@ import { AuthModule } from '../../auth/auth.module';
 import { CardModule } from '../../card/card.module';
 import { EncryptionModule } from '../../common/encryption/encryption.module';
 import { PrismaModule } from '../../prisma/prisma.module';
-import { NotionApiClient } from './notion-api.client';
-import { NotionDataController } from './notion-data.controller';
-import { NotionDataService } from './notion-data.service';
+import { NotionApiClient } from './data/notion-api.client';
+import { NotionDataController } from './data/notion-data.controller';
+import { NotionDataService } from './data/notion-data.service';
 import { NotionIntegrationRepository } from './notion-integration.repository';
-import { NotionMapper } from './notion.mapper';
-import { NotionOAuthController } from './notion-oauth.controller';
-import { NotionOAuthService } from './notion-oauth.service';
+import { NotionMapper } from './mapper/notion.mapper';
+import { NotionOAuthController } from './oauth/notion-oauth.controller';
+import { NotionOAuthService } from './oauth/notion-oauth.service';
 
 @Module({
   imports: [PrismaModule, EncryptionModule, AuthModule, CardModule],

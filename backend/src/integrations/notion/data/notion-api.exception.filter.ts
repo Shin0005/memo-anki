@@ -1,6 +1,6 @@
 import { ArgumentsHost, Catch, ExceptionFilter, Logger } from '@nestjs/common';
 import { Request, Response } from 'express';
-import { NotionReauthRequiredException } from './notion.exceptions';
+import { NotionReauthRequiredException } from '../notion.exceptions';
 
 /**
  * Notion APIエンドポイント用の例外フィルタ

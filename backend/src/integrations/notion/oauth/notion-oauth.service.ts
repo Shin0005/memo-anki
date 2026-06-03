@@ -1,13 +1,13 @@
 import { BadGatewayException, Injectable } from '@nestjs/common';
 import { randomBytes } from 'crypto';
-import { NotionIntegrationRepository } from './notion-integration.repository';
-import { getEnv } from '../../common/functions/get-env';
+import { NotionIntegrationRepository } from '../notion-integration.repository';
+import { getEnv } from '../../../common/functions/get-env';
 import {
   Client,
   APIResponseError,
   type OauthTokenResponse,
 } from '@notionhq/client';
-import { NotionReauthRequiredException } from './notion.exceptions';
+import { NotionReauthRequiredException } from '../notion.exceptions';
 
 /**
  * Notion OAuth tokenエンドポイントのレスポンス（必要項目のみ）

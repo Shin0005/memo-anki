@@ -19,8 +19,8 @@ import {
 } from '@notionhq/client';
 
 import { NotionOAuthService } from './notion-oauth.service';
-import { NotionIntegrationRepository } from './notion-integration.repository';
-import { NotionReauthRequiredException } from './notion.exceptions';
+import { NotionIntegrationRepository } from '../notion-integration.repository';
+import { NotionReauthRequiredException } from '../notion.exceptions';
 
 /**
  * @notionhq/client (Notion 公式 SDK) のモック

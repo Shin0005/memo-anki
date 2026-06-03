@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNumberString, Length } from 'class-validator';
-import { NotBlank } from '../../../common/decorators/not-blank.decorator';
+import { NotBlank } from '../../../../common/decorators/not-blank.decorator';
 
 /**
  * Notion DB のインポート実行 リクエスト body

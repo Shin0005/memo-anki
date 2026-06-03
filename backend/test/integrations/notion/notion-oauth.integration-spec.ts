@@ -79,7 +79,7 @@ import {
   COOKIE_OAUTH_DECK_ID,
   COOKIE_OAUTH_STATE,
   COOKIE_OAUTH_USER_ID,
-} from '../../../src/integrations/notion/notion-oauth.cookies';
+} from '../../../src/integrations/notion/oauth/notion-oauth.cookies';
 
 const FRONTEND_URL = 'http://localhost:3000';
 

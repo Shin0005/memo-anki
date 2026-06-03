@@ -13,8 +13,8 @@ import {
 } from '@nestjs/common';
 import { ApiResponse } from '@nestjs/swagger';
 import express from 'express';
-import { JwtAuthGuard } from '../../auth/jwt.guard';
-import { GetUserId } from '../../common/decorators/get-userid.decorator';
+import { JwtAuthGuard } from '../../../auth/jwt.guard';
+import { GetUserId } from '../../../common/decorators/get-userid.decorator';
 import { NotionAuthStartResponse } from './dto/notion-auth-start.response';
 import { NotionStatusResponse } from './dto/notion-status.response';
 import {
@@ -28,7 +28,7 @@ import {
   COOKIE_OAUTH_STATE,
   COOKIE_OAUTH_USER_ID,
   clearOAuthCookies,
-} from '../../integrations/notion/notion-oauth.cookies';
+} from './notion-oauth.cookies';
 
 /** フロントエンドURL */
 const frontendUrl = process.env.FRONTEND_URL ?? '';
