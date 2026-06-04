@@ -1,5 +1,4 @@
 import {
-  BadGatewayException,
   HttpException,
   Injectable,
   Logger,
@@ -9,6 +8,7 @@ import {
   APIErrorCode,
   APIResponseError,
   Client,
+  RequestTimeoutError,
   isFullDataSource,
   isFullPage,
   iteratePaginatedAPI,
@@ -21,7 +21,12 @@ import type {
 } from '@notionhq/client/build/src/api-endpoints';
 import { NotionIntegrationRepository } from '../notion-integration.repository';
 import { NotionOAuthService } from '../oauth/notion-oauth.service';
-import { NotionReauthRequiredException } from '../notion.exceptions';
+import {
+  NotionReauthRequiredException,
+  NotionServerErrorException,
+  NotionRetryableException,
+  NotionUserActionException,
+} from '../notion.exceptions';
 
 /**
  * Notion API クライアント（SDK ラッパー）
@@ -66,9 +71,8 @@ export class NotionApiClient {
       client.dataSources.retrieve({ data_source_id: databaseId }),
     );
     if (!isFullDataSource(res)) {
-      throw new BadGatewayException(
-        'Notionからdatabaseの詳細を取得できませんでした。',
-      );
+      // SDK側のバグ
+      throw new NotionServerErrorException('not_full_data_source');
     }
     // 絞り込まず全カラムを返却（ユーザに選択させる）
     return res;
@@ -126,7 +130,7 @@ export class NotionApiClient {
           return await this.runWithClient(userId, fn);
         } catch (e2) {
           if (
-            // Notion AT/RTが無効な場合
+            // Refreshしても AT/RTが無効な場合
             e2 instanceof APIResponseError &&
             e2.code === APIErrorCode.Unauthorized
           ) {
@@ -134,11 +138,11 @@ export class NotionApiClient {
             throw new NotionReauthRequiredException();
           }
           // UNAUTHORIZED以外のエラーをハンドル（refresh後）
-          return this.handleNonRetryableError(e2);
+          this.handleFetchError(e2);
         }
       }
       // UNAUTHORIZED以外のエラーをハンドル（初回）
-      return this.handleNonRetryableError(e);
+      this.handleFetchError(e);
     }
   }
 
@@ -157,20 +161,40 @@ export class NotionApiClient {
   }
 
   /**
-   * 401以外のエラーを502に正規化
-   * - ネットワークエラーやタイムアウト、Notion障害、その他予期しない例外
-   * - HttpExceptionはそのまま流す
+   * fetchWithRetry で発生した NotionReauthRequiredException 以外の例外を分類して投げる
    */
-  private handleNonRetryableError(e: unknown): never {
-    if (e instanceof HttpException) throw e; // filterに丸投げ
-    if (e instanceof APIResponseError) {
-      throw new BadGatewayException(
-        `Notion API がエラーを返しました（status=${e.status}）。`,
-      );
+  private handleFetchError(e: unknown): never {
+    // 普通のhttpExはglobalFilterに丸投げ
+    if (e instanceof HttpException) throw e;
+
+    // 通信タイムアウト → ユーザに再試行させる
+    if (e instanceof RequestTimeoutError) {
+      throw new NotionRetryableException('request_timeout');
     }
-    // 予期しないエラーまたはネットワークエラー
-    this.logger.error('Notion APIへの通信が失敗しました', e);
-    throw new BadGatewayException('Notion APIとの通信に失敗しました。');
+    // Notion SDK の例外を3区分（再試行 / ユーザ操作 / サーバエラー）の
+    // 自前例外に分類する。詳細な SDK コードは sdkCode に格納してログで利用する
+    if (e instanceof APIResponseError) {
+      switch (e.code) {
+        // 再試行で解決する可能性のあるエラー
+        case APIErrorCode.RateLimited:
+        case APIErrorCode.InternalServerError:
+        case APIErrorCode.ServiceUnavailable:
+        case APIErrorCode.GatewayTimeout:
+          throw new NotionRetryableException(e.code);
+
+        // ユーザ側の設定起因（権限なし／対象が存在しない）
+        case APIErrorCode.RestrictedResource:
+        case APIErrorCode.ObjectNotFound:
+          throw new NotionUserActionException(e.code);
+
+        // それ以外はこちらのバグなのでサーバエラー扱い
+        default:
+          throw new NotionServerErrorException(e.code);
+      }
+    }
+
+    // SDK 外の例外（ネットワーク切断・UnknownHTTPResponseError 等）
+    throw new NotionServerErrorException('unknown');
   }
 
   /** RTを使ってAT/RTを再発行しDBを更新する。RT拒否ならintegrationを削除する */
@@ -193,7 +217,8 @@ export class NotionApiClient {
         );
         await this.repository.delete(userId);
         // 再連携要求はNotionApiExceptionFilterで識別され、
-        // body の code フィールドでフロントが再連携モーダルを出す
+        // body の code='NOTION_REAUTH_REQUIRED' を見たフロントが
+        // 連携解除ボタン→連携ボタンに状態を戻し、トーストを出す。
         throw new NotionReauthRequiredException(
           'Notion連携が無効になりました。再連携してください。',
         );
