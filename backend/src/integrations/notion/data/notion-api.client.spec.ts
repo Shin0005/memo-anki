@@ -2,7 +2,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { mockDeep, type DeepMockProxy } from 'vitest-mock-extended';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { BadGatewayException, UnauthorizedException } from '@nestjs/common';
+import { UnauthorizedException } from '@nestjs/common';
 import { APIResponseError, RequestTimeoutError } from '@notionhq/client';
 import type {
   DataSourceObjectResponse,
@@ -14,7 +14,12 @@ import type {
 import { NotionApiClient } from './notion-api.client';
 import { NotionIntegrationRepository } from '../notion-integration.repository';
 import { NotionOAuthService } from '../oauth/notion-oauth.service';
-import { NotionReauthRequiredException } from '../notion.exceptions';
+import {
+  NotionReauthRequiredException,
+  NotionRetryableException,
+  NotionServerErrorException,
+  NotionUserActionException,
+} from '../notion.exceptions';
 
 /**
  * @notionhq/client のモック
@@ -129,12 +134,12 @@ const buildUnauthorizedError = () =>
     request_id: undefined,
   });
 
-/** 5xx APIResponseError を作る */
-const buildServerError = () =>
+/** 任意 code の APIResponseError を作る（toNotionException の分類検証用） */
+const buildApiError = (code: string, status: number) =>
   new APIResponseError({
-    code: 'internal_server_error' as never,
-    status: 500,
-    message: 'internal_server_error',
+    code: code as never,
+    status,
+    message: code,
     headers: new Headers(),
     rawBodyText: '{}',
     additional_data: undefined,
@@ -294,21 +299,85 @@ describe('NotionApiClient', () => {
     });
   });
 
-  describe('withRetry: その他のエラー', () => {
-    it('異常系: 5xx → BadGatewayException', async () => {
-      mockSearch.mockRejectedValue(buildServerError());
+  describe('withRetry: handleFetchError による分類の確認', () => {
+    // 再試行できる例外
+    // 5xx 系と RequestTimeoutError は「Notion 側の一時障害」扱いとして同じ区分にまとまる
+    it.each([
+      ['internal_server_error', 500],
+      ['service_unavailable', 503],
+      ['gateway_timeout', 504],
+      ['rate_limited', 429],
+    ])(
+      '異常系: %s (%d) → NotionRetryableException (sdkCode=%s)',
+      async (code, status) => {
+        mockSearch.mockRejectedValue(buildApiError(code, status));
 
-      await expect(client.searchDatabases('user-1')).rejects.toBeInstanceOf(
-        BadGatewayException,
+        const error: unknown = await client
+          .searchDatabases('user-1')
+          .catch((e: unknown) => e);
+
+        expect(error).toBeInstanceOf(NotionRetryableException);
+        // sdkCode が SDK の code をそのまま保持していること（ログ追跡用）
+        expect((error as NotionRetryableException).sdkCode).toBe(code);
+      },
+    );
+
+    it('異常系: RequestTimeoutError → NotionRetryableException (sdkCode=request_timeout)', async () => {
+      mockSearch.mockRejectedValue(new RequestTimeoutError('timeout'));
+
+      const error: unknown = await client
+        .searchDatabases('user-1')
+        .catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(NotionRetryableException);
+      expect((error as NotionRetryableException).sdkCode).toBe(
+        'request_timeout',
       );
     });
 
-    it('異常系: RequestTimeoutError → BadGatewayException', async () => {
-      mockSearch.mockRejectedValue(new RequestTimeoutError('timeout'));
+    // ユーザ操作起因の例外
+    // ユーザが Notion 側で共有解除/削除した場合などはこちらに分類される
+    it.each([
+      ['restricted_resource', 403],
+      ['object_not_found', 404],
+    ])(
+      '異常系: %s (%d) → NotionUserActionException (sdkCode=%s)',
+      async (code, status) => {
+        mockSearch.mockRejectedValue(buildApiError(code, status));
 
-      await expect(client.searchDatabases('user-1')).rejects.toBeInstanceOf(
-        BadGatewayException,
+        const error: unknown = await client
+          .searchDatabases('user-1')
+          .catch((e: unknown) => e);
+
+        expect(error).toBeInstanceOf(NotionUserActionException);
+        expect((error as NotionUserActionException).sdkCode).toBe(code);
+      },
+    );
+
+    // サーバエラー例外
+    // validation_error 等の「組み立てミス」と、SDK 外の予期しない例外
+    it('異常系: validation_error → NotionServerErrorException (sdkCode=validation_error)', async () => {
+      mockSearch.mockRejectedValue(buildApiError('validation_error', 400));
+
+      const error: unknown = await client
+        .searchDatabases('user-1')
+        .catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(NotionServerErrorException);
+      expect((error as NotionServerErrorException).sdkCode).toBe(
+        'validation_error',
       );
+    });
+
+    it('異常系: SDK外の予期しない例外 → NotionServerErrorException (sdkCode=unknown)', async () => {
+      mockSearch.mockRejectedValue(new Error('boom'));
+
+      const error: unknown = await client
+        .searchDatabases('user-1')
+        .catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(NotionServerErrorException);
+      expect((error as NotionServerErrorException).sdkCode).toBe('unknown');
     });
 
     it('異常系: integration が見つからない → UnauthorizedException', async () => {

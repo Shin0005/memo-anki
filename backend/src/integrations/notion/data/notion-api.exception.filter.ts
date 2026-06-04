@@ -1,30 +1,54 @@
 import { ArgumentsHost, Catch, ExceptionFilter, Logger } from '@nestjs/common';
 import { Request, Response } from 'express';
-import { NotionReauthRequiredException } from '../notion.exceptions';
+import {
+  NotionException,
+  NotionReauthRequiredException,
+  NotionServerErrorException,
+} from '../notion.exceptions';
 
 /**
  * Notion APIエンドポイント用の例外フィルタ
  *
- * フロント側で JWT 期限切れ等の通常 401 と区別する必要があるため、
- *  再連携要求にだけ専用 `code` を載せて返す。
+ * - NotionExceptionを一括 catch し、サブクラスごとに以下を出し分ける:
+ *   - ログ severity: NotionServerErrorException のみ error（スタック付き）、他は warn
+ *   - レスポンス body: 再連携要求のみ `code: 'NOTION_REAUTH_REQUIRED'` を付与する。
+ *     フロントは通常 401(JWT切れ) と区別したいケースのみ code を見て、
+ *     連携解除ボタン→連携ボタンへの状態遷移に使う。
  */
-@Catch(NotionReauthRequiredException)
+@Catch(NotionException)
 export class NotionApiExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(NotionApiExceptionFilter.name);
 
-  catch(exception: NotionReauthRequiredException, host: ArgumentsHost) {
+  catch(exception: NotionException, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const res = ctx.getResponse<Response>();
     const req = ctx.getRequest<Request>();
     const status = exception.getStatus();
 
-    // ユーザ操作起因の業務エラー想定。スタックトレースまでは要らないので warn。
-    this.logger.warn(`${exception.message} - Path: ${req.url}`);
+    // SDK code（または独自タグ）を必ず付けてログに残す。
+    const logLine = `[${exception.sdkCode}] ${exception.message} - ${req.url}`;
 
-    // 再連携要求: フロントが他の 401 と区別できるよう専用 code を載せる
+    // サーバ起因（こちらのバグ示唆）だけ error + stack を残す。
+    if (exception instanceof NotionServerErrorException) {
+      this.logger.error(logLine, exception.stack);
+    } else {
+      this.logger.warn(logLine);
+    }
+
+    // 再連携要求のときだけ body に code を載せる（フロントのボタン状態遷移用）
+    if (exception instanceof NotionReauthRequiredException) {
+      return res.status(status).json({
+        statusCode: status,
+        code: 'NOTION_REAUTH_REQUIRED',
+        message: exception.message,
+        timestamp: new Date().toISOString(),
+        path: req.url,
+      });
+    }
+
+    // 通常の Notion 系例外
     return res.status(status).json({
       statusCode: status,
-      code: 'NOTION_REAUTH_REQUIRED',
       message: exception.message,
       timestamp: new Date().toISOString(),
       path: req.url,

@@ -356,8 +356,9 @@ describe('Notion Data (Integration)', () => {
       expect(mockDataSourcesRetrieve).not.toHaveBeenCalled();
     });
 
-    it('2-3: 異常系 - Notion応答が isFullDataSource を通らない → 502', async () => {
-      // mapper にたどり着く前に APIClient の型ガードで弾かれ502
+    it('2-3: 異常系 - Notion応答が isFullDataSource を通らない → 500', async () => {
+      // mapper にたどり着く前に APIClient の型ガードで弾かれる。
+      // SDK 応答の想定外形状＝こちら側のバグ示唆として NotionServerErrorException(500) に分類
       await seedNotionIntegration();
       mockDataSourcesRetrieve.mockResolvedValue({
         id: 'ds-1', // 通らないデータ
@@ -366,7 +367,7 @@ describe('Notion Data (Integration)', () => {
       await request(app.getHttpServer())
         .get('/integrations/notion/databases/ds-1/columns')
         .set('Authorization', `Bearer ${token}`)
-        .expect(HttpStatus.BAD_GATEWAY);
+        .expect(HttpStatus.INTERNAL_SERVER_ERROR);
     });
   });
 
@@ -447,7 +448,7 @@ describe('Notion Data (Integration)', () => {
       );
     });
 
-    it('3-3: 異常系 - Notion API 途中失敗（2ページ目で 5xx）→ 502、card 変動なし', async () => {
+    it('3-3: 異常系 - Notion API 途中失敗（2ページ目で 5xx）→ 503、card 変動なし', async () => {
       await seedNotionIntegration();
       // 1ページ目: 100件 + has_more=true で 2ページ目を要求
       const firstPage = Array.from({ length: 100 }, (_, i) =>
@@ -456,13 +457,14 @@ describe('Notion Data (Integration)', () => {
       mockDataSourcesQuery
         .mockResolvedValueOnce(buildQueryResponse(firstPage, true, 'c1'))
         // 2ページ目: Notion 5xx
+        // → NotionRetryableException に分類されてフロントには 503 を返す
         .mockRejectedValueOnce(buildServerError());
 
       await request(app.getHttpServer())
         .post('/integrations/notion/databases/ds-1/import')
         .set('Authorization', `Bearer ${token}`)
         .send({ deckId: myDeckId.toString(), columnName: 'Body' })
-        .expect(HttpStatus.BAD_GATEWAY);
+        .expect(HttpStatus.SERVICE_UNAVAILABLE);
 
       // createManyNote まで到達していないので card は0件
       expect(await prisma.card.count({ where: { deckId: myDeckId } })).toBe(0);
