@@ -20,7 +20,10 @@ import {
 
 import { NotionOAuthService } from './notion-oauth.service';
 import { NotionIntegrationRepository } from '../notion-integration.repository';
-import { NotionReauthRequiredException } from '../notion.exceptions';
+import {
+  NotionOAuthInternalException,
+  NotionReauthRequiredException,
+} from '../notion.exceptions';
 
 /**
  * @notionhq/client (Notion 公式 SDK) のモック
@@ -160,8 +163,9 @@ describe('NotionOAuthService', () => {
       });
     });
 
-    // APIResponseError は Notion 側エラー（invalid_grant等）。service は内部用 message で投げ直す
-    it('異常系: APIResponseError → BadGateway (内部用 message)', async () => {
+    // APIResponseError は Notion 側エラー（invalid_grant等）。
+    // service は SDK の code を sdkCode に載せて NotionOAuthInternalException で投げ直す
+    it('異常系: APIResponseError → NotionOAuthInternalException (sdkCode=SDK code)', async () => {
       const apiErr = new APIResponseError({
         code: 'unauthorized' as never,
         status: 401,
@@ -173,24 +177,35 @@ describe('NotionOAuthService', () => {
       });
       mockOauthToken.mockRejectedValue(apiErr);
 
-      await expect(service.exchangeCodeForTokens('code')).rejects.toMatchObject(
-        {
-          constructor: BadGatewayException,
-          message: 'Notion連携に失敗しました。',
-        },
+      const error: unknown = await service
+        .exchangeCodeForTokens('code')
+        .catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(NotionOAuthInternalException);
+      // SDK の code がそのまま sdkCode に乗る（ログ追跡用）
+      expect((error as NotionOAuthInternalException).sdkCode).toBe(
+        'unauthorized',
+      );
+      expect((error as NotionOAuthInternalException).message).toBe(
+        'Notion連携に失敗しました。',
       );
     });
 
-    // それ以外（RequestTimeoutError / network 系）は通信用 message で投げ直す
-    it('異常系: RequestTimeoutError → BadGateway (通信用 message)', async () => {
+    // それ以外（RequestTimeoutError / network 系）は sdkCode=connection_error で投げ直す
+    it('異常系: RequestTimeoutError → NotionOAuthInternalException (sdkCode=connection_error)', async () => {
       const timeoutErr = new RequestTimeoutError('request timed out');
       mockOauthToken.mockRejectedValue(timeoutErr);
 
-      await expect(service.exchangeCodeForTokens('code')).rejects.toMatchObject(
-        {
-          constructor: BadGatewayException,
-          message: 'Notionへの接続に失敗しました。',
-        },
+      const error: unknown = await service
+        .exchangeCodeForTokens('code')
+        .catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(NotionOAuthInternalException);
+      expect((error as NotionOAuthInternalException).sdkCode).toBe(
+        'connection_error',
+      );
+      expect((error as NotionOAuthInternalException).message).toBe(
+        'Notionへの接続に失敗しました。',
       );
     });
 
@@ -200,13 +215,18 @@ describe('NotionOAuthService', () => {
       ['refresh_token が null', { refresh_token: null, workspace_name: 'n' }],
       ['workspace_name が null', { refresh_token: 'r', workspace_name: null }],
     ])(
-      '異常系: 必須項目欠落 (%s) → BadGatewayException',
+      '異常系: 必須項目欠落 (%s) → NotionOAuthInternalException (sdkCode=invalid_response)',
       async (_label, partial) => {
         mockOauthToken.mockResolvedValue(buildOauthResponse(partial));
 
-        await expect(
-          service.exchangeCodeForTokens('code'),
-        ).rejects.toBeInstanceOf(BadGatewayException);
+        const error: unknown = await service
+          .exchangeCodeForTokens('code')
+          .catch((e: unknown) => e);
+
+        expect(error).toBeInstanceOf(NotionOAuthInternalException);
+        expect((error as NotionOAuthInternalException).sdkCode).toBe(
+          'invalid_response',
+        );
       },
     );
   });

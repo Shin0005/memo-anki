@@ -7,7 +7,10 @@ import {
   APIResponseError,
   type OauthTokenResponse,
 } from '@notionhq/client';
-import { NotionReauthRequiredException } from '../notion.exceptions';
+import {
+  NotionOAuthInternalException,
+  NotionReauthRequiredException,
+} from '../notion.exceptions';
 
 /**
  * Notion OAuth tokenエンドポイントのレスポンス（必要項目のみ）
@@ -63,14 +66,25 @@ export class NotionOAuthService {
       });
     } catch (e) {
       // APIResponseError: Notion 側 4xx/5xx ／ それ以外: 通信系
+      // SDK の code（rate_limited 等）を sdkCode に載せてログに残す。
+      // フロントには filter が notion_failed フラグだけ返す。
       if (e instanceof APIResponseError) {
-        throw new BadGatewayException('Notion連携に失敗しました。');
+        throw new NotionOAuthInternalException(
+          e.code,
+          'Notion連携に失敗しました。',
+        );
       }
-      throw new BadGatewayException('Notionへの接続に失敗しました。');
+      throw new NotionOAuthInternalException(
+        'connection_error',
+        'Notionへの接続に失敗しました。',
+      );
     }
     // resがnullableなのでチェック
     if (!response.refresh_token || !response.workspace_name) {
-      throw new BadGatewayException('Notionからのレスポンスが不正です。');
+      throw new NotionOAuthInternalException(
+        'invalid_response',
+        'Notionからのレスポンスが不正です。',
+      );
     }
 
     // NotionTokenResponseを返す
