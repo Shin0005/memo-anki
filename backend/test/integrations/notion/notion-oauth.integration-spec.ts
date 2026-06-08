@@ -388,8 +388,9 @@ describe('Notion OAuth (Integration)', () => {
     });
 
     it('B-4: Notion API が 4xx (APIResponseError) → notion_failed redirect、Cookie clear、DB 変化なし', async () => {
-      // SDK 化後は service が APIResponseError を捕捉して BadGatewayException に詰め替える。
-      // それを NotionOAuthExceptionFilter が拾って notion_failed に倒す流れ。
+      // service が APIResponseError を捕捉し、code を sdkCode に載せて
+      // NotionOAuthUpstreamException に詰め替える。それを NotionOAuthExceptionFilter が
+      // 拾って notion_failed に倒す流れ。
       mockOauthToken.mockRejectedValue(
         buildApiResponseError(400, 'invalid_grant'),
       );
@@ -409,8 +410,8 @@ describe('Notion OAuth (Integration)', () => {
     });
 
     it('B-4b: 通信エラー (RequestTimeoutError) → notion_failed redirect、Cookie clear、DB 変化なし', async () => {
-      // SDK は通信失敗を RequestTimeoutError として返す。service 側は接続用の
-      // BadGatewayException に詰め替える。filter の出力は同じく notion_failed。
+      // SDK は通信失敗を RequestTimeoutError として返す。service 側は sdkCode=connection_error の
+      // NotionOAuthUpstreamException に詰め替える。filter の出力は同じく notion_failed。
       mockOauthToken.mockRejectedValue(
         new RequestTimeoutError('request timed out'),
       );
@@ -431,7 +432,7 @@ describe('Notion OAuth (Integration)', () => {
 
     it('B-5: Notion レスポンス必須項目欠落 → notion_failed redirect', async () => {
       // SDK 型上 refresh_token / workspace_name は nullable。null で来た時 service が
-      // BadGatewayException を投げ、filter が notion_failed に倒す。
+      // sdkCode=invalid_response の NotionOAuthUpstreamException を投げ、filter が notion_failed に倒す。
       mockOauthToken.mockResolvedValue(
         buildOauthResponse({
           refresh_token: null,

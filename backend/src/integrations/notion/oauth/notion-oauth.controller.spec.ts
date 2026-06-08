@@ -2,8 +2,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { mockDeep, type DeepMockProxy } from 'vitest-mock-extended';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { BadRequestException } from '@nestjs/common';
 import type express from 'express';
+import { NotionOAuthInvalidRequestException } from '../notion.exceptions';
 
 // controller.ts は import 時に process.env.FRONTEND_URL を読み込んで定数に固定する。
 // そのため vi.hoisted を使い、import より前に env を設定しておく必要がある。
@@ -125,7 +125,7 @@ describe('NotionOAuthController.callback', () => {
   // state検証
   // ---------------------------------------------------------------------------
   describe('state検証', () => {
-    it('異常系: queryState と cookieState が不一致 → BadRequestException', async () => {
+    it('異常系: queryState と cookieState が不一致 → NotionOAuthInvalidRequestException', async () => {
       const req = makeReq({
         [COOKIE_OAUTH_STATE]: 'cookie-state',
         [COOKIE_OAUTH_DECK_ID]: 'deck-99',
@@ -135,14 +135,14 @@ describe('NotionOAuthController.callback', () => {
 
       await expect(
         controller.callback('code', 'query-state', undefined, req, res),
-      ).rejects.toBeInstanceOf(BadRequestException);
+      ).rejects.toBeInstanceOf(NotionOAuthInvalidRequestException);
 
       // 状態不正なので service は呼ばれない
       expect(serviceMock.exchangeCodeForTokens).not.toHaveBeenCalled();
       expect(serviceMock.saveNotionResponse).not.toHaveBeenCalled();
     });
 
-    it('異常系: cookieState 自体が無い → BadRequestException', async () => {
+    it('異常系: cookieState 自体が無い → NotionOAuthInvalidRequestException', async () => {
       // [試験項目: cookie state 欠落]
       // Cookie の有効期限切れ・別オリジン経由など、cookieState が落ちているケース
       const req = makeReq({
@@ -153,10 +153,10 @@ describe('NotionOAuthController.callback', () => {
 
       await expect(
         controller.callback('code', 'some-state', undefined, req, res),
-      ).rejects.toBeInstanceOf(BadRequestException);
+      ).rejects.toBeInstanceOf(NotionOAuthInvalidRequestException);
     });
 
-    it('異常系: queryState が無い → BadRequestException', async () => {
+    it('異常系: queryState が無い → NotionOAuthInvalidRequestException', async () => {
       const req = makeReq({
         [COOKIE_OAUTH_STATE]: 'cookie-state',
         [COOKIE_OAUTH_DECK_ID]: 'deck-99',
@@ -166,7 +166,7 @@ describe('NotionOAuthController.callback', () => {
 
       await expect(
         controller.callback('code', undefined, undefined, req, res),
-      ).rejects.toBeInstanceOf(BadRequestException);
+      ).rejects.toBeInstanceOf(NotionOAuthInvalidRequestException);
     });
   });
 
@@ -200,7 +200,7 @@ describe('NotionOAuthController.callback', () => {
       );
     });
 
-    it('error あり & state不一致 → state不一致が優先で BadRequestException', async () => {
+    it('error あり & state不一致 → state不一致が優先で NotionOAuthInvalidRequestException', async () => {
       // state 検証が最初に走るため、error の有無に関わらず BadRequest が出るのが期待挙動。
       const req = makeReq({
         [COOKIE_OAUTH_STATE]: 'cookie-state',
@@ -217,7 +217,7 @@ describe('NotionOAuthController.callback', () => {
           req,
           res,
         ),
-      ).rejects.toBeInstanceOf(BadRequestException);
+      ).rejects.toBeInstanceOf(NotionOAuthInvalidRequestException);
 
       // cancelled redirect は走らない
       expect(res.redirect).not.toHaveBeenCalled();
@@ -230,7 +230,7 @@ describe('NotionOAuthController.callback', () => {
   describe('必須項目チェック（state一致後）', () => {
     const state = 'STATE-OK';
 
-    it('異常系: code が undefined → BadRequestException', async () => {
+    it('異常系: code が undefined → NotionOAuthInvalidRequestException', async () => {
       const req = makeReq({
         [COOKIE_OAUTH_STATE]: state,
         [COOKIE_OAUTH_DECK_ID]: 'deck-99',
@@ -240,12 +240,12 @@ describe('NotionOAuthController.callback', () => {
 
       await expect(
         controller.callback(undefined, state, undefined, req, res),
-      ).rejects.toBeInstanceOf(BadRequestException);
+      ).rejects.toBeInstanceOf(NotionOAuthInvalidRequestException);
 
       expect(serviceMock.exchangeCodeForTokens).not.toHaveBeenCalled();
     });
 
-    it('異常系: userId Cookie が無い → BadRequestException', async () => {
+    it('異常系: userId Cookie が無い → NotionOAuthInvalidRequestException', async () => {
       // [試験項目: userId Cookie 欠落]
       const req = makeReq({
         [COOKIE_OAUTH_STATE]: state,
@@ -256,12 +256,12 @@ describe('NotionOAuthController.callback', () => {
 
       await expect(
         controller.callback('code', state, undefined, req, res),
-      ).rejects.toBeInstanceOf(BadRequestException);
+      ).rejects.toBeInstanceOf(NotionOAuthInvalidRequestException);
 
       expect(serviceMock.exchangeCodeForTokens).not.toHaveBeenCalled();
     });
 
-    it('異常系: deckId Cookie が無い → BadRequestException', async () => {
+    it('異常系: deckId Cookie が無い → NotionOAuthInvalidRequestException', async () => {
       const req = makeReq({
         [COOKIE_OAUTH_STATE]: state,
         [COOKIE_OAUTH_USER_ID]: 'user-1',
@@ -271,7 +271,7 @@ describe('NotionOAuthController.callback', () => {
 
       await expect(
         controller.callback('code', state, undefined, req, res),
-      ).rejects.toBeInstanceOf(BadRequestException);
+      ).rejects.toBeInstanceOf(NotionOAuthInvalidRequestException);
 
       expect(serviceMock.exchangeCodeForTokens).not.toHaveBeenCalled();
     });
