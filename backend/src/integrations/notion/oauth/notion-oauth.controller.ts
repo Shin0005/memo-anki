@@ -22,6 +22,7 @@ import {
   NotionTokenResponse,
 } from './notion-oauth.service';
 import { NotionOAuthExceptionFilter } from './notion-oauth.exception.filter';
+import { NotionOAuthInvalidRequestException } from '../notion.exceptions';
 import {
   COOKIE_MAX_AGE,
   COOKIE_OAUTH_DECK_ID,
@@ -66,6 +67,7 @@ export class NotionOAuthController {
     res.cookie(COOKIE_OAUTH_USER_ID, userId, cookieOptions);
 
     // Notion認可画面URLを返す（フロントがwindow.location.hrefで遷移する）
+    // リダイレクトするとATが乗せれずに認証が効かない(401)
     const authorizationUrl =
       this.notionOAuthService.buildAuthorizationUrl(state);
     return new NotionAuthStartResponse(authorizationUrl);
@@ -97,7 +99,10 @@ export class NotionOAuthController {
     /** バリデーション */
     // state検証（CSRF対策）クエリが偽造されている可能性有
     if (!queryState || !cookieState || queryState !== cookieState) {
-      throw new BadRequestException('state が不正、または期限切れです。');
+      throw new NotionOAuthInvalidRequestException(
+        'state_mismatch',
+        'state が不正、または期限切れです。',
+      );
     } else {
       // ユーザがNotion側で認可拒否した場合
       if (error) {
@@ -109,14 +114,23 @@ export class NotionOAuthController {
       }
       // 認可codeが無ければ中止
       if (!code) {
-        throw new BadRequestException('code が含まれていません。');
+        throw new NotionOAuthInvalidRequestException(
+          'missing_code',
+          'code が含まれていません。',
+        );
       }
       // userId Cookie, deckId Cookieが無ければ中止
       if (!userId) {
-        throw new BadRequestException('userId Cookieが見つかりません。');
+        throw new NotionOAuthInvalidRequestException(
+          'missing_user_cookie',
+          'userId Cookieが見つかりません。',
+        );
       }
       if (!deckId) {
-        throw new BadRequestException('deckId Cookieが見つかりません。');
+        throw new NotionOAuthInvalidRequestException(
+          'missing_deck_cookie',
+          'deckId Cookieが見つかりません。',
+        );
       }
     }
 

@@ -39,6 +39,33 @@ export class NotionReauthRequiredException extends NotionException {
   }
 }
 
+// OAuth callback 専用の例外
+/**
+ * OAuth callback でのクライアント起因エラー。
+ * 例: state 不正 / code 欠落 / cookie 欠落
+ */
+export class NotionOAuthInvalidRequestException extends NotionException {
+  constructor(
+    readonly sdkCode: string,
+    message: string,
+  ) {
+    super(message, HttpStatus.BAD_REQUEST);
+  }
+}
+
+/**
+ * OAuth callback での Notion / 内部ロジック起因エラー。
+ * 例: token エンドポイントの APIResponseError / 通信エラー / レスポンス不正
+ */
+export class NotionOAuthInternalException extends NotionException {
+  constructor(
+    readonly sdkCode: string,
+    message: string,
+  ) {
+    super(message, HttpStatus.BAD_GATEWAY);
+  }
+}
+
 // SDKから出る例外
 /**
  * 再試行で解決する可能性がある一時的なエラー。
