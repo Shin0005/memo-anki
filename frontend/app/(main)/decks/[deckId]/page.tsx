@@ -16,6 +16,7 @@ import { useDeckMutations } from '@/features/deck/hooks/useDeckMutations';
 import { useNotionAuth } from '@/features/integration/notion/hooks/useNotionAuth';
 import { useNotionStatus } from '@/features/integration/notion/hooks/useNotionStatus';
 import { useNotionUrlResponse } from '@/features/integration/notion/hooks/useNotionUrlResponse';
+import NotionImportModal from '@/features/integration/notion/components/NotionImportModal';
 
 type Card = components['schemas']['CardResponse'];
 type CreateCardRequest = components['schemas']['CreateCardRequest'];
@@ -133,7 +134,12 @@ export default function CardListPage() {
         />
       )}
 
-      {/* TODO: Step管理のNotionインポートモーダルに置き換える */}
+      {/* Notionインポートモーダル */}
+      <NotionImportModal
+        open={openImport}
+        deckId={deckId}
+        onClose={() => setOpenImport(false)}
+      />
     </div>
   );
 }
