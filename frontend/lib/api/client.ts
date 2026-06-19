@@ -55,7 +55,7 @@ async function toHttpError(res: Response): Promise<HttpError> {
   const message = Array.isArray(body?.message)
     ? body.message.join(', ') // 配列なら結合
     : (body?.message ?? 'Fetch Failed');
-  return new HttpError(res.status, message);
+  return new HttpError(res.status, message, body?.code);
 }
 
 /** リフレッシュ処理 RTを用いてATを取得する */

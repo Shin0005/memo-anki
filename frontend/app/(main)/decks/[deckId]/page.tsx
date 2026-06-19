@@ -14,6 +14,9 @@ import CardEditModal from '@/features/card/components/CardEditModal';
 import DeckUpdateModal from '@/features/deck/components/DeckUpdateModal';
 import { useDeckMutations } from '@/features/deck/hooks/useDeckMutations';
 import { useNotionAuth } from '@/features/integration/notion/hooks/useNotionAuth';
+import { useNotionStatus } from '@/features/integration/notion/hooks/useNotionStatus';
+import { useNotionUrlResponse } from '@/features/integration/notion/hooks/useNotionUrlResponse';
+import NotionImportModal from '@/features/integration/notion/components/NotionImportModal';
 
 type Card = components['schemas']['CardResponse'];
 type CreateCardRequest = components['schemas']['CreateCardRequest'];
@@ -41,12 +44,16 @@ export default function CardListPage() {
   const { data: cards = [], isLoading, isError, error } = useCards(deckId);
   const { createCard, updateCard, deleteCard } = useCardMutations();
   const { updateDeck } = useDeckMutations();
-  const { connect: connectNotion } = useNotionAuth(deckId);
+  const { connect: connectNotion, disconnect: disconnectNotion } =
+    useNotionAuth(deckId);
+  const { data: notionStatus } = useNotionStatus();
+  useNotionUrlResponse(deckId);
 
   // useState（モーダル開閉）
   const [openEditDeck, setOpenEditDeck] = useState(false);
   const [openCreateCard, setOpenCreateCard] = useState(false);
   const [editingCard, setEditingCard] = useState<Card | null>(null);
+  const [openImport, setOpenImport] = useState(false);
 
   // CRUD
   //deck
@@ -81,6 +88,15 @@ export default function CardListPage() {
             onEditDeck={() => setOpenEditDeck(true)}
             onCreateCard={() => setOpenCreateCard(true)}
             onConnectNotion={() => connectNotion.mutate()}
+            onDisconnectNotion={() => {
+              if (window.confirm('Notion連携を解除しますか？')) {
+                disconnectNotion.mutate();
+              }
+            }}
+            onImport={() => setOpenImport(true)}
+            notionConnected={notionStatus?.connected ?? false}
+            notionConnecting={connectNotion.isPending}
+            notionDisconnecting={disconnectNotion.isPending}
           />
           <CardList
             cards={cards}
@@ -117,6 +133,13 @@ export default function CardListPage() {
           onSave={handleUpdateCard}
         />
       )}
+
+      {/* Notionインポートモーダル */}
+      <NotionImportModal
+        open={openImport}
+        deckId={deckId}
+        onClose={() => setOpenImport(false)}
+      />
     </div>
   );
 }
