@@ -21,6 +21,11 @@ export interface ICardRepository {
     version: number,
     data: Prisma.CardUncheckedUpdateInput,
   ): Promise<Card | null>;
+  createManyNote(input: {
+    userId: string;
+    deckId: bigint;
+    rawNotes: { name: string; content: string | null }[];
+  }): Promise<number>;
 }
 
 // DI用のトークン

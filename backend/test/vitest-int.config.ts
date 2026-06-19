@@ -1,7 +1,11 @@
 import { defineConfig } from 'vitest/config';
+import swc from 'unplugin-swc';
 import path from 'path';
 
 export default defineConfig({
+  // NestJS の @Injectable() / コンストラクタDI は emitDecoratorMetadata が必要。
+  // esbuild（vitestのデフォルト）は出力しないため、unit 側と同じく SWC でトランスパイルする。
+  plugins: [swc.vite({ module: { type: 'es6' } })],
   test: {
     include: ['**/*.integration-spec.ts'], // 結合テストファイルを対象にする
     globals: true,

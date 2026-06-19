@@ -180,6 +180,118 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/integrations/notion/auth": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["NotionOAuthController_startAuth"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/integrations/notion/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["NotionOAuthController_callback"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/integrations/notion/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["NotionOAuthController_getStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/integrations/notion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["NotionOAuthController_deleteIntegration"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/integrations/notion/databases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["NotionDataController_getDatabases"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/integrations/notion/databases/{id}/columns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["NotionDataController_getColumns"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/integrations/notion/databases/{id}/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["NotionDataController_importDatabase"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -360,6 +472,91 @@ export interface components {
              */
             version: number;
             preview?: components["schemas"]["ReviewPreviewResponse"];
+        };
+        NotionAuthStartResponse: {
+            /**
+             * @description Notion認可画面のURL。フロントはこのURLへブラウザ遷移する。
+             * @example https://api.notion.com/v1/oauth/authorize?client_id=...&response_type=code&owner=user&redirect_uri=...&state=...
+             */
+            url: string;
+        };
+        NotionStatusResponse: {
+            /**
+             * @description Notion連携済みかどうか
+             * @example true
+             */
+            connected: boolean;
+            /**
+             * @description 連携先のNotionワークスペース名（connected=trueのみ）
+             * @example My Workspace
+             */
+            workspaceName?: string;
+        };
+        NotionDatabaseItem: {
+            /**
+             * @description Notion DB の ID
+             * @example e9b3f1c2-...-...
+             */
+            id: string;
+            /**
+             * @description DB の表示名
+             * @example Books
+             */
+            title: string;
+        };
+        NotionDatabaseListResponse: {
+            /** @description user が Notion 側で share した database 一覧 */
+            databases: components["schemas"]["NotionDatabaseItem"][];
+        };
+        NotionColumnItem: {
+            /**
+             * @description カラム名
+             * @example Body
+             */
+            name: string;
+            /**
+             * @description Notion プロパティ型 (title / rich_text / select 等)
+             * @example rich_text
+             */
+            type: string;
+        };
+        NotionColumnListResponse: {
+            /**
+             * @description Notion DB の ID
+             * @example e9b3f1c2-...
+             */
+            databaseId: string;
+            /**
+             * @description DB の表示名
+             * @example Books
+             */
+            databaseTitle: string;
+            /** @description 全カラム */
+            columns: components["schemas"]["NotionColumnItem"][];
+        };
+        NotionImportRequest: {
+            /**
+             * @description bigint ID of the destination deck
+             * @example 1
+             */
+            deckId: string;
+            /**
+             * @description Notion DB の本文として取り込むカラム名
+             * @example Body
+             */
+            columnName: string;
+        };
+        NotionImportResponse: {
+            /**
+             * @description 作成されたカード数
+             * @example 123
+             */
+            count: number;
+            /**
+             * @description true なら 1000 件上限で打ち切ったことを示す
+             * @example false
+             */
+            truncated?: boolean;
         };
     };
     responses: never;
@@ -683,6 +880,145 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CardReviewResponse"];
+                };
+            };
+        };
+    };
+    NotionOAuthController_startAuth: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotionAuthStartResponse"];
+                };
+            };
+        };
+    };
+    NotionOAuthController_callback: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    NotionOAuthController_getStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotionStatusResponse"];
+                };
+            };
+        };
+    };
+    NotionOAuthController_deleteIntegration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    NotionDataController_getDatabases: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotionDatabaseListResponse"];
+                };
+            };
+        };
+    };
+    NotionDataController_getColumns: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Notion DB の ID（実体は data_source_id） */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotionColumnListResponse"];
+                };
+            };
+        };
+    };
+    NotionDataController_importDatabase: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Notion DB の ID（実体は data_source_id） */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NotionImportRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotionImportResponse"];
                 };
             };
         };
