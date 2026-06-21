@@ -58,13 +58,31 @@ async function toHttpError(res: Response): Promise<HttpError> {
   return new HttpError(res.status, message, body?.code);
 }
 
+/**
+ * 進行中のリフレッシュを共有するためのPromise。
+ * 複数リクエストが同時に401になっても/auth/refreshを1回に集約する。
+ * RTは単回使用（呼ぶたびにローテーション）のため、並列に投げると
+ * 後発リクエストが古いRTで401になる。それを防ぐ。
+ */
+let refreshPromise: Promise<string> | null = null;
+
 /** リフレッシュ処理 RTを用いてATを取得する */
 export async function refreshAccessToken(): Promise<string> {
-  const res = await fetchOnce('/auth/refresh', 'POST', undefined, null);
+  // 既に進行中ならそれを待つ（重複リフレッシュ＝RT競合の防止）
+  if (refreshPromise) return refreshPromise;
 
-  if (!res.ok) throw await toHttpError(res);
+  refreshPromise = (async () => {
+    const res = await fetchOnce('/auth/refresh', 'POST', undefined, null);
 
-  const data = (await res.json()) as { accessToken: string };
-  useAuthStore.getState().setAccessToken(data.accessToken);
-  return data.accessToken;
+    if (!res.ok) throw await toHttpError(res);
+
+    const data = (await res.json()) as { accessToken: string };
+    useAuthStore.getState().setAccessToken(data.accessToken);
+    return data.accessToken;
+  })().finally(() => {
+    // 成否に関わらず次回のために解放する
+    refreshPromise = null;
+  });
+
+  return refreshPromise;
 }
