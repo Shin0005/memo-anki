@@ -55,10 +55,13 @@ export class NotionOAuthController {
     // CSRF対策のランダムstateを生成
     const state = this.notionOAuthService.generateState();
 
+    // 本番はフロント(別サイト)からのクロスサイトfetchで発行するため none 必須。
+    // lax だとクロスサイトfetch応答のSet-Cookieが保存されず、callbackでCookieが欠落する。
+    const isProd = process.env.NODE_ENV === 'production';
     const cookieOptions: express.CookieOptions = {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production', // Secure: 本番のみ
-      sameSite: 'lax',
+      secure: isProd, // Secure: 本番のみ
+      sameSite: isProd ? 'none' : 'lax',
       path: '/',
       maxAge: COOKIE_MAX_AGE, // 5分
     };

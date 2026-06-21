@@ -16,10 +16,12 @@ export const COOKIE_MAX_AGE = 5 * 60 * 1000;
  * callback成功・失敗のいずれでも実行する（再利用防止のため）
  */
 export function clearOAuthCookies(res: express.Response) {
+  // 発行時(startAuth)と同じ属性でないとブラウザはCookieを削除できない。
+  const isProd = process.env.NODE_ENV === 'production';
   const clearOptions: express.CookieOptions = {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    secure: isProd,
+    sameSite: isProd ? 'none' : 'lax',
     path: '/',
   };
   res.clearCookie(COOKIE_OAUTH_STATE, clearOptions);
